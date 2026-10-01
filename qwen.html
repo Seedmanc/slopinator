@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OVERSATURATE — AI Artist Assault</title>
+<style>
+  html,body{margin:0;padding:0;background:#05070f;height:100%;overflow:hidden;font-family:'Courier New',monospace}
+  #game{width:100vw;height:100vh}
+  #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,7,18,.62);backdrop-filter:blur(3px);z-index:10}
+  #overlay.hidden{display:none}
+  .panel{background:#0d1226;border:2px solid #3fd0ff;border-radius:12px;padding:26px 30px;max-width:560px;color:#dfe8ff;box-shadow:0 0 40px rgba(63,208,255,.25)}
+  .panel h2{margin:0 0 10px;color:#ffd54f;letter-spacing:2px}
+  .panel .sub{color:#8fa3c8;font-size:13px;margin-bottom:14px;line-height:1.5}
+  .panel .big{font-size:16px;line-height:1.8;margin:10px 0}
+  .tiles{display:grid;grid-template-columns:repeat(3,76px);gap:8px;margin:14px 0}
+  .tile{width:76px;height:76px;font-size:36px;background:#161d36;border:2px solid #2c3a5e;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .08s;user-select:none}
+  .tile:hover{transform:scale(1.06)}
+  .tile.sel{border-color:#ffd54f;background:#3a3110;box-shadow:0 0 10px rgba(255,213,79,.5)}
+  .btn{background:#123;border:2px solid #3fd0ff;color:#bfeaff;padding:10px 22px;font-family:inherit;font-size:15px;border-radius:8px;cursor:pointer;letter-spacing:1px;margin-top:6px}
+  .btn:hover{background:#3fd0ff;color:#04121e}
+  .msg{color:#ff8f8f;min-height:18px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="overlay" class="hidden"><div id="ovBox" class="panel"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/typescript@5.4.5/lib/typescript.min.js"></script>
+
+<script id="srcts" type="text/typescript">
+declare const Phaser: any;
+
+const W = 960, H = 640;
+const TAU = Math.PI * 2;
+
+enum Theme { ANIME = 0, REALISTIC = 1, GENERAL = 2 }
+
+interface ThemeInfo { name: string; icon: string; color: number; hex: string; }
+const THEMES: ThemeInfo[] = [
+  { name: 'ANIME',     icon: '🎌', color: 0xff5fa2, hex: '#ff5fa2' },
+  { name: 'REALISTIC', icon: '📷', color: 0x4fc3f7, hex: '#4fc3f7' },
+  { name: 'GENERAL',   icon: '🌐', color: 0xffd54f, hex: '#ffd54f' },
+];
+const AMMO_NAMES = ['ANIME', 'REALISTIC', 'GENERAL', 'LoRA'];
+
+const SITE_NAMES: string[][] = [
+  ['sakurapix.art', 'weeblagoon.net', 'moeboard.io'],
+  ['photorealm.com', 'realstock.io', 'lensdump.net'],
+  ['clipdump.org', 'feedfire.net', 'pixscroll.com'],
+];
+
+const SLOT_POS: { x: number; y: number }[] = [];
+{
+  const xs = [8, 36, 64], ys = [20, 48];
+  for (const yy of ys) for (const xx of xs) SLOT_POS.push({ x: xx - 48, y: yy - 38 });
+}
+const PALETTE = [0xff5fa2, 0x4fc3f7, 0xffd54f, 0x9b6bff, 0x5fffb0, 0xff9f43];
+
+function normAng(a: number): number { a = a % TAU; if (a < 0) a += TAU; return a; }
+function angDist(a: number, b: number): number { let d = normAng(b - a); if (d > Math.PI) d = TAU - d; return d; }
+
+/* ---------------- SFX (tiny webaudio synth) ---------------- */
+let AC: any = null;
+function sfx(kind: string) {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    AC = AC || new Ctx();
+    if (AC.state === 'suspended') AC.resume();
+    const t0 = AC.currentTime;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    let dur = 0.1, peak = 0.05;
+    switch (kind) {
+      case 'shoot':   o.type='square';   o.frequency.setValueAtTime(760,t0); o.frequency.exponentialRampToValueAtTime(380,t0+0.06); dur=0.06; peak=0.025; break;
+      case 'hit':     o.type='triangle'; o.frequency.setValueAtTime(240,t0); o.frequency.exponentialRampToValueAtTime(120,t0+0.08); dur=0.09; break;
+      case 'clank':   o.type='square';   o.frequency.setValueAtTime(140,t0); dur=0.05; peak=0.045; break;
+      case 'like':    o.type='sine';     o.frequency.setValueAtTime(660,t0); o.frequency.exponentialRampToValueAtTime(1180,t0+0.1); dur=0.12; break;
+      case 'hurt':    o.type='sawtooth'; o.frequency.setValueAtTime(180,t0); o.frequency.exponentialRampToValueAtTime(70,t0+0.18); dur=0.2; peak=0.06; break;
+      case 'boom':    o.type='sawtooth'; o.frequency.setValueAtTime(120,t0); o.frequency.exponentialRampToValueAtTime(30,t0+0.4); dur=0.45; peak=0.09; break;
+      case 'cash':    o.type='sine';     o.frequency.setValueAtTime(980,t0); o.frequency.setValueAtTime(1320,t0+0.07); dur=0.14; peak=0.04; break;
+      case 'captcha': o.type='square';   o.frequency.setValueAtTime(520,t0); o.frequency.setValueAtTime(392,t0+0.12); dur=0.25; break;
+      case 'lock':    o.type='sine';     o.frequency.setValueAtTime(523,t0); o.frequency.setValueAtTime(659,t0+0.08); o.frequency.setValueAtTime(784,t0+0.16); dur=0.28; peak=0.06; break;
+      case 'train':   o.type='sine';     o.frequency.setValueAtTime(220,t0); o.frequency.exponentialRampToValueAtTime(880,t0+0.5); dur=0.55; break;
+    }
+    g.gain.setValueAtTime(peak, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+
+/* ---------------- textures (all procedural) ---------------- */
+function makeTextures(sc: any) {
+  const g = sc.add.graphics();
+  // player rig
+  g.clear();
+  g.fillStyle(0x232a3d, 1); g.fillRoundedRect(4, 6, 32, 28, 6);
+  g.fillStyle(0x3fd0ff, 1); g.fillRect(8, 10, 10, 6);
+  g.fillStyle(0xffd54f, 1); g.fillCircle(30, 14, 3);
+  g.fillStyle(0x141926, 1); g.fillRoundedRect(10, 26, 8, 8, 2); g.fillRoundedRect(22, 26, 8, 8, 2);
+  g.lineStyle(2, 0x3fd0ff, 0.8); g.strokeRoundedRect(4, 6, 32, 28, 6);
+  g.generateTexture('player', 40, 40);
+  // barrel
+  g.clear(); g.fillStyle(0x9fb4d8, 1); g.fillRect(0, 2, 26, 6); g.fillStyle(0x3fd0ff, 1); g.fillRect(22, 1, 8, 8);
+  g.generateTexture('barrel', 30, 10);
+  // ammo bullets
+  g.clear(); g.fillStyle(0xff5fa2,1); g.fillCircle(9,9,7); g.fillStyle(0xffffff,0.9); g.fillCircle(9,9,3); g.generateTexture('b0',18,18);
+  g.clear(); g.fillStyle(0x0d1322,1); g.fillRect(1,1,14,14); g.fillStyle(0x4fc3f7,1); g.fillRect(3,3,10,10); g.fillStyle(0xffffff,1); g.fillCircle(6,6,2); g.generateTexture('b1',16,16);
+  g.clear(); g.fillStyle(0xffd54f,1); g.fillCircle(8,8,6); g.lineStyle(1,0x7a5f10,1); g.strokeCircle(8,8,6); g.generateTexture('b2',16,16);
+  g.clear(); g.fillStyle(0xc77dff,0.35); g.fillCircle(11,11,10); g.fillStyle(0xc77dff,1); g.fillCircle(11,11,6); g.fillStyle(0xffffff,0.9); g.fillCircle(11,11,2.5); g.generateTexture('b3',22,22);
+  // generic enemy bullet
+  g.clear(); g.fillStyle(0xff4d4d,1); g.fillCircle(7,7,6); g.lineStyle(1,0x661111,1); g.strokeCircle(7,7,6); g.generateTexture('eb',14,14);
+  // boss bullet
+  g.clear(); g.fillStyle(0xff7b3d,1); g.fillCircle(8,8,7); g.fillStyle(0x3d1505,1); g.fillCircle(8,8,3); g.generateTexture('bossb',16,16);
+  // spark
+  g.clear(); g.fillStyle(0xffffff,1); g.fillCircle(4,4,3.5); g.generateTexture('spark',8,8);
+  // website window 96x76
+  g.clear();
+  g.fillStyle(0x1b2233,1); g.fillRoundedRect(0,0,96,76,6);
+  g.lineStyle(2,0x3a4763,1); g.strokeRoundedRect(0,0,96,76,6);
+  g.fillStyle(0x2a3550,1); g.fillRoundedRect(0,0,96,16,{tl:6,tr:6,bl:0,br:0});
+  g.fillStyle(0xff5f5f,1); g.fillCircle(8,8,2.5); g.fillStyle(0xffd54f,1); g.fillCircle(16,8,2.5); g.fillStyle(0x5fffb0,1); g.fillCircle(24,8,2.5);
+  g.fillStyle(0x232c44,1);
+  for (const s of [{x:8,y:20},{x:36,y:20},{x:64,y:20},{x:8,y:48},{x:36,y:48},{x:64,y:48}]) g.fillRoundedRect(s.x,s.y,24,24,3);
+  g.generateTexture('win',96,76);
+  // fan
+  g.clear(); g.fillStyle(0xffd166,1); g.fillCircle(15,17,11); g.fillStyle(0x22223b,1); g.fillCircle(11,15,2); g.fillCircle(19,15,2);
+  g.fillStyle(0xff5fa2,1); g.fillCircle(12,7,3); g.fillCircle(17,7,3); g.fillTriangle(9,9,20,9,14.5,14);
+  g.generateTexture('fan',30,30);
+  // art sample (tiny picture icon)
+  g.clear(); g.fillStyle(0xf5f6fa,1); g.fillRect(1,1,24,20); g.lineStyle(1,0x8395a7,1); g.strokeRect(1,1,24,20);
+  g.fillStyle(0xffd54f,1); g.fillCircle(8,7,2.5);
+  g.fillStyle(0x9b6bff,1); g.fillTriangle(3,19,11,9,17,19);
+  g.fillStyle(0x5fffb0,1); g.fillTriangle(12,19,19,11,24,19);
+  g.generateTexture('art',26,22);
+  // commission request paper
+  g.clear(); g.fillStyle(0xf5f6fa,1); g.fillRect(2,1,16,22); g.lineStyle(1,0x8395a7,1); g.strokeRect(2,1,16,22);
+  g.lineStyle(1,0x576574,1);
+  for (let yy=6; yy<=18; yy+=3){ g.beginPath(); g.moveTo(4,yy); g.lineTo(16,yy); g.strokePath(); }
+  g.generateTexture('req',20,24);
+  // captcha orb
+  g.clear(); g.fillStyle(0x9b59d0,0.4); g.fillCircle(13,13,12); g.fillStyle(0x9b59d0,1); g.fillCircle(13,13,8); g.fillStyle(0xe8d5ff,1); g.fillCircle(10,10,3);
+  g.generateTexture('orb',26,26);
+  // boss: the anti-AI artist
+  g.clear();
+  g.fillStyle(0x3b3357,1); g.fillCircle(70,82,50);
+  g.fillStyle(0xe8c39e,1); g.fillCircle(70,58,32);
+  g.fillStyle(0xc0392b,1); g.fillEllipse(70,32,66,24); g.fillCircle(70,22,5);
+  g.fillStyle(0x22223b,1); g.fillCircle(59,56,4); g.fillCircle(81,56,4);
+  g.fillStyle(0x5a3d2b,1); g.fillTriangle(48,46,66,52,48,55); g.fillTriangle(92,46,74,52,92,55);
+  g.lineStyle(3,0x8a5a44,1); g.beginPath(); g.arc(70,72,11,Math.PI*1.15,Math.PI*1.85); g.strokePath();
+  g.fillStyle(0xd9a066,1); g.fillEllipse(40,116,34,20);
+  g.fillStyle(0xc0392b,1); g.fillCircle(34,113,3); g.fillStyle(0x4fc3f7,1); g.fillCircle(42,110,3); g.fillStyle(0xffd54f,1); g.fillCircle(48,116,3);
+  g.generateTexture('boss',140,140);
+  g.destroy();
+}
+
+/* ---------------- WEBSITE ENTITY ---------------- */
+class Site {
+  sc: any; c: any; win: any; slotG: any; barG: any; shieldG: any;
+  satTxt: any; alertTxt: any;
+  theme: Theme; bx: number; by: number; ph: number; sw: number; amp: number;
+  saturation = 0; alertness = 0; warned = false;
+  hasShield: boolean; shieldRot: number; shieldDir: number; gaps: number[] = []; gapHalf = 0.36;
+  bodyR = 40; shieldR = 56;
+  fireT: number; t = 0; done = false; alive = true;
+  slotColors: number[]; name: string;
+
+  constructor(sc: any, theme: Theme, bx: number, by: number, shielded: boolean) {
+    this.sc = sc; this.theme = theme; this.bx = bx; this.by = by;
+    this.ph = Math.random() * TAU; this.sw = 0.5 + Math.random() * 0.6; this.amp = 24 + Math.random() * 22;
+    this.fireT = 1500 + Math.random() * 1500;
+    this.hasShield = shielded;
+    this.shieldRot = Math.random() * TAU;
+    this.shieldDir = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.3);
+    this.gaps = Math.random() < 0.5 ? [0] : [0, Math.PI];
+    this.slotColors = SLOT_POS.map(() => PALETTE[Math.floor(Math.random() * PALETTE.length)]);
+    const names = SITE_NAMES[theme];
+    this.name = names[Math.floor(Math.random() * names.length)];
+
+    this.c = sc.add.container(bx, by);
+    this.win = sc.add.image(0, 0, 'win');
+    this.slotG = sc.add.graphics();
+    this.barG = sc.add.graphics();
+    this.shieldG = sc.add.graphics();
+    const iconT = sc.add.text(36, -30, THEMES[theme].icon, { fontSize: '13px' }).setOrigin(0.5);
+    const nameT = sc.add.text(0, -64, this.name, { fontFamily: 'monospace', fontSize: '12px', color: THEMES[theme].hex }).setOrigin(0.5).setStroke('#000', 3);
+    this.satTxt = sc.add.text(46, -48, '0%', { fontFamily: 'monospace', fontSize: '10px', color: '#dfe8ff' }).setOrigin(0, 0.5).setStroke('#000', 2);
+    this.alertTxt = sc.add.text(0, -80, '⚠', { fontSize: '16px' }).setOrigin(0.5).setVisible(false);
+    this.c.add([this.win, this.slotG, iconT, nameT, this.barG, this.satTxt, this.alertTxt, this.shieldG]);
+    this.c.setDepth(2);
+    this.redrawSlots(); this.drawBar();
+    if (this.hasShield) this.drawShield();
+  }
+
+  get x() { return this.c.x; }
+  get y() { return this.c.y; }
+
+  get segs(): number[][] {
+    const out: number[][] = [];
+    const gs = this.gaps.slice().sort((a, b) => a - b);
+    for (let i = 0; i < gs.length; i++) {
+      const start = gs[i] + this.gapHalf;
+      const end = (i === gs.length - 1 ? gs[0] + TAU : gs[i + 1]) - this.gapHalf;
+      out.push([start, end]);
+    }
+    return out;
+  }
+
+  redrawSlots() {
+    const g = this.slotG; g.clear();
+    const n = Math.ceil(this.saturation / 100 * 6);
+    for (let k = 0; k < n; k++) {
+      g.fillStyle(this.slotColors[k], 0.95);
+      g.fillRoundedRect(SLOT_POS[k].x, SLOT_POS[k].y, 24, 24, 3);
+    }
+  }
+
+  drawBar() {
+    const g = this.barG; g.clear();
+    g.fillStyle(0x0a0f1c, 0.85); g.fillRect(-38, -52, 76, 8);
+    g.fillStyle(THEMES[this.theme].color, 1); g.fillRect(-37, -51, 74 * this.saturation / 100, 6);
+    g.lineStyle(1, 0x3a4763, 1); g.strokeRect(-38, -52, 76, 8);
+    if (this.alertness > 0) { g.fillStyle(0xff9f43, 0.95); g.fillRect(-37, -41, 74 * this.alertness / 100, 3); }
+    this.satTxt.setText(Math.floor(this.saturation) + '%');
+  }
+
+  drawShield() {
+    const g = this.shieldG; g.clear();
+    if (!this.hasShield || this.done) return;
+    const col = this.alertness > 60 ? 0xff9f43 : 0x7cfc9e;
+    g.lineStyle(5, col, 0.8);
+    for (const seg of this.segs) {
+      g.beginPath();
+      g.arc(0, 0, this.shieldR, seg[0] + this.shieldRot, seg[1] + this.shieldRot);
+      g.strokePath();
+    }
+  }
+
+  applyHit(ammo: number) {
+    const match = ammo === this.theme || ammo === 3;
+    const dmg = match ? 7 : 3;
+    this.saturation = Math.min(100, this.saturation + dmg);
+    this.sc.popup(this.x, this.y - 34, '+' + dmg + '%', match ? THEMES[this.theme].hex : '#9aa7bd');
+    this.win.setTintFill(0xffffff);
+    this.sc.time.delayedCall(70, () => { if (!this.done && this.win.active) this.win.clearTint(); });
+    this.redrawSlots();
+    if (match && Math.random() < 0.28) this.sc.spawnLikeAt(this.x, this.y);
+    if (this.saturation >= 100) this.finish();
+  }
+
+  finish() {
+    this.done = true; this.hasShield = false; this.shieldG.clear();
+    const st = this.sc.add.text(0, 8, '100%\nSATURATED', { fontFamily: 'monospace', fontSize: '13px', fontStyle: 'bold', align: 'center', color: '#04121e' }).setOrigin(0.5);
+    this.c.add(st);
+    this.win.setTint(0x9be8ff);
+    this.sc.saturated(this);
+  }
+
+  update(dt: number) {
+    if (!this.alive) return;
+    this.t += dt;
+    this.c.x = this.bx + Math.sin(this.t * 0.001 * this.sw + this.ph) * this.amp;
+    this.c.y = this.by + Math.sin(this.t * 0.0013 * this.sw + this.ph * 1.7) * 10;
+    if (this.hasShield && !this.done) {
+      this.shieldRot = normAng(this.shieldRot + this.shieldDir * dt * 0.001);
+      this.drawShield();
+    }
+    this.alertness = Math.max(0, this.alertness - dt * 0.004);
+    if (this.alertness > 65 && !this.warned) { this.warned = true; this.sc.popup(this.x, this.y - 92, '⚠ MODERATION ALERT RISING', '#ff9f43'); }
+    if (this.alertness < 30) this.warned = false;
+    this.alertTxt.setVisible(this.alertness > 40 && !this.done);
+    if (!this.done) {
+      this.fireT -= dt;
+      if (this.fireT <= 0) { this.fireT = 1300 + Math.random() * 1500; this.sc.siteFire(this); }
+    }
+    this.drawBar();
+  }
+}
+
+/* ---------------- MENU ---------------- */
+class MenuScene extends Phaser.Scene {
+  constructor() { super('Menu'); }
+  create() {
+    const g = this.add.graphics();
+    g.lineStyle(1, 0x1a2440, 0.6);
+    for (let x = 0; x <= W; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.strokePath(); }
+    for (let y = 0; y <= H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.strokePath(); }
+    const ems = ['🖼️', '🎨', '💾', '🤖', '📸', '🎌'];
+    for (let i = 0; i < 14; i++) {
+      const em = this.add.text(Math.random() * W, Math.random() * H, ems[i % 6], { fontSize: '26px' }).setAlpha(0.16);
+      this.tweens.add({ targets: em, y: em.y - 140, x: em.x + (Math.random() * 60 - 30), duration: 6000 + Math.random() * 5000, repeat: -1, yoyo: true });
+    }
+    this.add.text(W / 2, 108, 'OVERSATURATE', { fontFamily: 'monospace', fontSize: '64px', fontStyle: 'bold', color: '#3fd0ff' }).setOrigin(0.5).setStroke('#0a2030', 8);
+    this.add.text(W / 2, 156, '// flood the feeds — an AI artist shooter //', { fontFamily: 'monospace', fontSize: '16px', color: '#8fa3c8' }).setOrigin(0.5);
+    const lines =
+      'YOU pilot an image-generation rig. Saturate every website to 100%.\n\n' +
+      'WASD / ARROWS ........ move the rig\n' +
+      'MOUSE ................ aim · LEFT CLICK fires images\n' +
+      '1 / 2 / 3 ............ ammo style: 🎌 anime · 📷 realistic · 🌐 general\n' +
+      '                       MATCH the site theme → more 💖 likes, fewer 💢 attacks\n' +
+      'SPACE / RIGHT CLICK .. LoRA vortex (boss fight: collect art → train LoRA)\n\n' +
+      '⚠ Moderation shields have rotating gaps. Shield hits raise alertness —\n' +
+      '   at max they launch a CAPTCHA at you. Solve it to keep playing.\n' +
+      '💀 Finally: the Anti-AI Artist Collective. Its HP is its commission price.';
+    this.add.text(W / 2, 330, lines, { fontFamily: 'monospace', fontSize: '14px', color: '#c9d6f2', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
+    const start = this.add.text(W / 2, H - 62, '[ CLICK OR PRESS ENTER TO DEPLOY RIG ]', { fontFamily: 'monospace', fontSize: '20px', fontStyle: 'bold', color: '#ffd54f' }).setOrigin(0.5);
+    this.tweens.add({ targets: start, alpha: 0.35, duration: 600, yoyo: true, repeat: -1 });
+    this.input.once('pointerdown', () => this.scene.start('Game'));
+    this.input.keyboard!.once('keydown-ENTER', () => this.scene.start('Game'));
+  }
+}
+
+/* ---------------- GAME ---------------- */
+class GameScene extends Phaser.Scene {
+  phase!: string; frozen!: boolean; captchaLock!: boolean;
+  elapsed!: number; introT!: number; victoryT!: number; overT!: number;
+  vicShown!: boolean; overShown!: boolean; overCause!: string;
+  px!: number; py!: number; hp!: number; likes!: number; ammo!: number;
+  fireCd!: number; invuln!: number; unlocked!: boolean[]; vortexOn!: boolean; vortexRot!: number;
+  bullets!: any[]; ebullets!: any[]; likesArr!: any[]; orb!: any;
+  sites!: Site[]; saturatedCount!: number;
+  boss!: any; fans!: any[]; samples!: any[]; requests!: any[];
+  dataset!: number; training!: boolean; trainT!: number; trainPopT!: number;
+  atkT!: number; ringT!: number; sampleT!: number; loraReady!: boolean;
+  pendingSite!: any;
+  pSpr!: any; barrel!: any; vortexG!: any; hudG!: any; hudTxt!: any;
+  ammoSlots!: any[]; bossBarG!: any; bossBarT!: any; dsG!: any; dsT!: any;
+  keyW!: any; keyA!: any; keyS!: any; keyD!: any;
+  up!: any; down!: any; leftK!: any; rightK!: any;
+  k1!: any; k2!: any; k3!: any; k4!: any; spKey!: any; pKey!: any;
+
+  constructor() { super('Game'); }
+
+  create() {
+    (document.getElementById('overlay') as any).classList.add('hidden');
+    // reset all state (scene instances are reused on restart)
+    this.phase = 'sites'; this.frozen = false; this.captchaLock = false;
+    this.elapsed = 0; this.introT = 0; this.victoryT = 0; this.overT = 0;
+    this.vicShown = false; this.overShown = false; this.overCause = '';
+    this.px = W / 2; this.py = H - 90; this.hp = 100; this.likes = 0; this.ammo = 0;
+    this.fireCd = 0; this.invuln = 0; this.unlocked = [true, true, true, false];
+    this.vortexOn = false; this.vortexRot = 0;
+    this.bullets = []; this.ebullets = []; this.likesArr = []; this.orb = null;
+    this.sites = []; this.saturatedCount = 0;
+    this.boss = null; this.fans = []; this.samples = []; this.requests = [];
+    this.dataset = 0; this.training = false; this.trainT = 0; this.trainPopT = 0;
+    this.atkT = 2400; this.ringT = 5200; this.sampleT = 1200; this.loraReady = false;
+    this.pendingSite = null;
+
+    // background grid
+    const bg = this.add.graphics();
+    bg.lineStyle(1, 0x141c33, 0.55);
+    for (let x = 0; x <= W; x += 40) { bg.beginPath(); bg.moveTo(x, 0); bg.lineTo(x, H); bg.strokePath(); }
+    for (let y = 0; y <= H; y += 40) { bg.beginPath(); bg.moveTo(0, y); bg.lineTo(W, y); bg.strokePath(); }
+
+    makeTextures(this);
+
+    // player
+    this.pSpr = this.add.image(this.px, this.py, 'player').setDepth(4);
+    this.barrel = this.add.image(this.px, this.py, 'barrel').setOrigin(0, 0.5).setDepth(4);
+    this.vortexG = this.add.graphics().setDepth(1);
+
+    this.buildHUD();
+    this.buildInput();
+    this.spawnSites();
+
+    this.toast('FLOOD EVERY SITE TO 100%');
+    this.time.delayedCall(1900, () => this.toast('Match [1][2][3] ammo to the site theme!'));
+  }
+
+  buildHUD() {
+    this.hudG = this.add.graphics().setDepth(50);
+    this.hudTxt = {};
+    this.hudTxt.hp = this.add.text(22, 13, '', { fontFamily: 'monospace', fontSize: '11px', color: '#eaffff' }).setDepth(51);
+    this.hudTxt.likes = this.add.text(W - 20, 12, '', { fontFamily: 'monospace', fontSize: '16px', fontStyle: 'bold', color: '#ff9fc2' }).setOrigin(1, 0).setDepth(51);
+    this.hudTxt.sites = this.add.text(W - 20, 34, '', { fontFamily: 'monospace', fontSize: '12px', color: '#9be8ff' }).setOrigin(1, 0).setDepth(51);
+    this.hudTxt.hint = this.add.text(W / 2, H - 12, '', { fontFamily: 'monospace', fontSize: '12px', color: '#8fa3c8' }).setOrigin(0.5, 1).setDepth(51).setAlpha(0.7);
+    this.ammoSlots = [];
+    for (let i = 0; i < 4; i++) {
+      const sx = 20 + i * 118, sy = H - 64;
+      const g = this.add.graphics().setDepth(50);
+      const t1 = this.add.text(sx + 10, sy + 5, (i + 1) + '', { fontFamily: 'monospace', fontSize: '12px', color: '#68789a' }).setDepth(51);
+      const t2 = this.add.text(sx + 58, sy + 15, AMMO_NAMES[i], { fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold', color: '#8fa3c8' }).setOrigin(0.5).setDepth(51);
+      const t3 = this.add.text(sx + 58, sy + 33, i < 3 ? THEMES[i].icon : '🔒', { fontSize: '15px' }).setOrigin(0.5).setDepth(51);
+      this.ammoSlots.push({ g, t1, t2, t3, x: sx, y: sy });
+      this.add.zone(sx + 55, sy + 24, 110, 48).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.tryAmmo(i));
+    }
+    this.bossBarG = this.add.graphics().setDepth(50);
+    this.bossBarT = this.add.text(W / 2, 40, '', { fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold', color: '#ffb3b3' }).setOrigin(0.5).setDepth(51);
+    this.dsG = this.add.graphics().setDepth(50);
+    this.dsT = this.add.text(W / 2, H - 78, '', { fontFamily: 'monospace', fontSize: '12px', color: '#d9c2ff' }).setOrigin(0.5).setDepth(51);
+  }
+
+  buildInput() {
+    const kb = this.input.keyboard!;
+    this.keyW = kb.addKey('W'); this.keyA = kb.addKey('A'); this.keyS = kb.addKey('S'); this.keyD = kb.addKey('D');
+    this.up = kb.addKey('UP'); this.down = kb.addKey('DOWN'); this.leftK = kb.addKey('LEFT'); this.rightK = kb.addKey('RIGHT');
+    this.k1 = kb.addKey('ONE'); this.k2 = kb.addKey('TWO'); this.k3 = kb.addKey('THREE'); this.k4 = kb.addKey('FOUR');
+    this.spKey = kb.addKey('SPACE'); this.pKey = kb.addKey('P');
+    kb.addCapture(['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE', 'ONE', 'TWO', 'THREE', 'FOUR', 'W', 'A', 'S', 'D', 'P']);
+    this.game.canvas.addEventListener('contextmenu', (e: any) => e.preventDefault());
+  }
+
+  spawnSites() {
+    const themes = [0, 1, 2, Math.floor(Math.random() * 3)];
+    for (let i = themes.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = themes[i]; themes[i] = themes[j]; themes[j] = tmp; }
+    const xs = [170, 405, 645, 855], ys = [145, 195, 125, 180];
+    const shieldIdx = new Set<number>();
+    while (shieldIdx.size < 2) shieldIdx.add(Math.floor(Math.random() * 4));
+    for (let i = 0; i < 4; i++) this.sites.push(new Site(this, themes[i] as Theme, xs[i], ys[i], shieldIdx.has(i)));
+  }
+
+  /* ---------- helpers ---------- */
+  popup(x: number, y: number, str: string, color: string) {
+    const t = this.add.text(x, y, str, { fontFamily: 'monospace', fontSize: '13px', fontStyle: 'bold', color }).setOrigin(0.5).setStroke('#000', 3).setDepth(60);
+    this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: 750, onComplete: () => t.destroy() });
+  }
+  toast(msg: string) {
+    const t = this.add.text(W / 2, H * 0.34, msg, { fontFamily: 'monospace', fontSize: '25px', fontStyle: 'bold', color: '#ffd54f', align: 'center' }).setOrigin(0.5).setStroke('#000', 6).setDepth(90);
+    this.tweens.add({ targets: t, scale: 1.07, duration: 180, yoyo: true });
+    this.tweens.add({ targets: t, alpha: 0, y: H * 0.34 - 30, delay: 1500, duration: 500, onComplete: () => t.destroy() });
+  }
+  hitSpark(x: number, y: number, color: number) {
+    for (let i = 0; i < 5; i++) {
+      const sp = this.add.image(x, y, 'spark').setTint(color).setDepth(6);
+      const a = Math.random() * TAU, d = 14 + Math.random() * 26;
+      this.tweens.add({ targets: sp, x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, alpha: 0, scale: 0.3, duration: 280, onComplete: () => sp.destroy() });
+    }
+  }
+  boom(x: number, y: number, color: number, n: number) {
+    for (let i = 0; i < n; i++) {
+      const sp = this.add.image(x, y, 'spark').setTint(i % 3 === 0 ? 0xffffff : color).setDepth(8).setScale(1 + Math.random());
+      const a = Math.random() * TAU, d = 30 + Math.random() * 80;
+      this.tweens.add({ targets: sp, x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, alpha: 0, scale: 0.2, duration: 450 + Math.random() * 350, onComplete: () => sp.destroy() });
+    }
+  }
+
+  tryAmmo(i: number) {
+    if (!this.unlocked[i]) { if (i === 3) this.popup(this.px, this.py - 34, 'LoRA LOCKED — train it on the boss art', '#8fa3c8'); return; }
+    if (this.ammo === i) return;
+    this.ammo = i;
+    this.popup(this.px, this.py - 34, (i < 3 ? THEMES[i].icon + ' ' : '⚡ ') + AMMO_NAMES[i] + ' IMAGES', i < 3 ? THEMES[i].hex : '#c77dff');
+    sfx('clank');
+  }
+
+  /* ---------- combat ---------- */
+  fireBullet() {
+    const a = this.ammo;
+    const ang = this.barrel.rotation + (Math.random() - 0.5) * 0.05;
+    const x = this.px + Math.cos(ang) * 30, y = this.py + Math.sin(ang) * 30;
+    const img = this.add.image(x, y, 'b' + a).setDepth(3);
+    if (a === 3) img.setScale(1.3);
+    this.bullets.push({ sp: img, x, y, vx: Math.cos(ang) * 470, vy: Math.sin(ang) * 470, ammo: a });
+    const m = this.add.image(x, y, 'spark').setTint(0xffffff).setDepth(4).setScale(1.4);
+    this.tweens.add({ targets: m, alpha: 0, scale: 0.2, duration: 110, onComplete: () => m.destroy() });
+    sfx('shoot');
+  }
+
+  spawnLikeAt(x: number, y: number) {
+    const ang = Math.random() * TAU, spd = 40 + Math.random() * 45;
+    const ch = Math.random() < 0.5 ? '💖' : '👍';
+    const t = this.add.text(x, y, ch, { fontSize: '18px' }).setOrigin(0.5).setDepth(3);
+    this.likesArr.push({ sp: t, x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, life: 6500 });
+  }
+
+  spawnEB(x: number, y: number, ang: number, spd: number, tex: string, dmg: number) {
+    const sp = this.add.image(x, y, tex).setDepth(3);
+    this.ebullets.push({ sp, x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, dmg, life: 8000, ph: Math.random() * TAU });
+  }
+
+  siteFire(s: Site) {
+    const match = this.ammo === s.theme;
+    const shots = match ? 1 : (Math.random() < 0.35 ? 2 : 1);
+    for (let k = 0; k < shots; k++) {
+      const ang = Math.atan2(this.py - s.y, this.px - s.x) + (Math.random() - 0.5) * 0.16;
+      const good = Math.random() < (match ? 0.55 : 0.15);
+      const sx = s.x + Math.cos(ang) * 34, sy = s.y + Math.sin(ang) * 34;
+      if (good) {
+        this.spawnLikeAt(sx, sy);
+      } else {
+        const spd = match ? 185 : 235;
+        const em = ['💢', '😡', '🚫', '⚠️'][Math.floor(Math.random() * 4)];
+        const t = this.add.text(sx, sy, em, { fontSize: '20px' }).setOrigin(0.5).setDepth(3);
+        this.ebullets.push({ sp: t, x: sx, y: sy, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, dmg: 12, life: 6000, ph: Math.random() * TAU });
+      }
+    }
+  }
+
+  shieldBlock(s: Site, b: any) {
+    s.alertness = Math.min(100, s.alertness + 14);
+    this.popup(b.x, b.y, 'MOD SHIELD', '#7cfc9e');
+    this.hitSpark(b.x, b.y, 0x7cfc9e);
+    sfx('clank');
+    if (s.alertness >= 100) { s.alertness = 0; this.launchCaptchaOrb(s); }
+  }
+
+  launchCaptchaOrb(s: Site) {
+    if (this.orb) { s.alertness = 70; return; }
+    this.pendingSite = s;
+    const c = this.add.container(s.x, s.y).setDepth(3);
+    const im = this.add.image(0, 0, 'orb');
+    const q = this.add.text(0, 1, '?', { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5);
+    c.add([im, q]);
+    const ang = Math.atan2(this.py - s.y, this.px - s.x);
+    this.orb = { c, x: s.x, y: s.y, ang, spd: 140, life: 9000 };
+    this.toast('⚠ CAPTCHA INBOUND — DODGE IT!');
+    sfx('captcha');
+  }
+
+  damagePlayer(dmg: number) {
+    if (this.invuln > 0 || this.phase === 'gameover' || this.phase === 'victory') return;
+    this.hp -= dmg; this.invuln = 900;
+    sfx('hurt');
+    this.cameras.main.shake(160, 0.006);
+    this.cameras.main.flash(110, 255, 60, 60, false);
+    this.pSpr.setTintFill(0xff5555);
+    this.time.delayedCall(110, () => { if (this.pSpr.active) this.pSpr.clearTint(); });
+    this.popup(this.px, this.py - 34, '-' + dmg, '#ff6b6b');
+    if (this.hp <= 0) { this.hp = 0; this.gameOver('Your rig was ratioed into oblivion.'); }
+  }
+
+  saturated(s: Site) {
+    this.saturatedCount++;
+    this.popup(s.x, s.y - 60, '✔ SITE SATURATED', '#9be8ff');
+    this.boom(s.x, s.y, THEMES[s.theme].color, 12);
+    sfx('lock');
+    if (this.saturatedCount >= this.sites.length) {
+      this.phase = 'bossintro'; this.introT = 0;
+      this.toast('⚠ ALL FEEDS FLOODED… SOMETHING APPROACHES');
+      sfx('captcha');
+    }
+  }
+
+  /* ---------- boss ---------- */
+  spawnBoss() {
+    this.phase = 'boss';
+    for (const s of this.sites) {
+      s.alive = false;
+      this.tweens.add({ targets: s.c, alpha: 0, duration: 400, onComplete: () => s.c.setVisible(false) });
+    }
+    // clear field reactions
+    for (const e of this.ebullets) e.sp.destroy(); this.ebullets = [];
+    for (const l of this.likesArr) l.sp.destroy(); this.likesArr = [];
+    if (this.orb) { this.orb.c.destroy(); this.orb = null; this.pendingSite = null; }
+
+    const spr = this.add.image(W / 2, -90, 'boss').setScale(0.3).setDepth(2);
+    this.boss = { x: W / 2, y: 150, hp: 4500, max: 4500, r: 46, t: 0, spr };
+    this.tweens.add({ targets: spr, y: 150, scale: 1.25, duration: 900, ease: 'Back.easeOut' });
+    this.fans = [];
+    for (let i = 0; i < 4; i++) {
+      const f = { a: i * TAU / 4, dist: 104 + i * 5, hp: 30, alive: true, reqT: 3200 + Math.random() * 3800, resT: 0, x: 0, y: 0, spr: this.add.image(0, 0, 'fan').setDepth(2).setAlpha(0) };
+      this.fans.push(f);
+      this.tweens.add({ targets: f.spr, alpha: 1, delay: 900 + i * 120, duration: 300 });
+    }
+    this.toast('THE COMMISSION COLLECTIVE');
+    this.time.delayedCall(1800, () => this.toast('HP = COMMISSION PRICE: $4,500'));
+    this.time.delayedCall(3600, () => { if (this.boss) this.popup(this.boss.x, this.boss.y - 70, '"You can\'t fine-tune TALENT."', '#ffb3c6'); });
+    this.time.delayedCall(8000, () => { if (this.boss) this.popup(this.boss.x, this.boss.y - 70, '"My fans outdraw your dataset."', '#ffb3c6'); });
+    sfx('boom');
+  }
+
+  spawnRequest(x: number, y: number) {
+    const sp = this.add.image(x, y, 'req').setDepth(2);
+    this.requests.push({ sp, x, y, life: 9000, dead: false });
+    this.popup(x, y - 20, '📜 commission request!', '#ffd54f');
+  }
+
+  spawnSample() {
+    const b = this.boss;
+    const ang = Math.random() * TAU, spd = 30 + Math.random() * 45;
+    const sp = this.add.image(b.x, b.y, 'art').setDepth(2).setAlpha(0).setScale(0.5);
+    this.tweens.add({ targets: sp, alpha: 1, scale: 1, duration: 250 });
+    this.samples.push({ sp, x: b.x, y: b.y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, life: 9000, ph: Math.random() * TAU });
+  }
+
+  hitFan(f: any, b: any) {
+    f.hp -= 8;
+    f.spr.setTintFill(0xffffff);
+    this.time.delayedCall(70, () => { if (f.spr.active && f.alive) f.spr.clearTint(); });
+    this.hitSpark(b.x, b.y, 0xffd166);
+    sfx('hit');
+    if (f.hp <= 0) {
+      f.alive = false; f.resT = 16000;
+      f.spr.setAlpha(0);
+      this.boom(f.x, f.y, 0xffd166, 8);
+      this.likes += 25;
+      this.popup(f.x, f.y, 'FAN DOWN +25💖', '#ffd166');
+      sfx('boom');
+    }
+  }
+
+  hitBoss(ammo: number, x: number, y: number) {
+    const b = this.boss;
+    if (!b) return;
+    if (ammo === 3) {
+      b.hp -= 90;
+      this.popup(x, y, '-$90', '#c77dff');
+      b.spr.setTint(0xff66ff);
+      this.hitSpark(x, y, 0xc77dff);
+      sfx('hit');
+      this.cameras.main.shake(60, 0.003);
+    } else {
+      b.hp -= 3;
+      this.popup(x, y, 'RESISTED -3', '#7a8699');
+      sfx('clank');
+    }
+    this.time.delayedCall(80, () => { if (this.boss && b.spr.active) b.spr.clearTint(); });
+    if (b.hp <= 0) { b.hp = 0; this.bossDown(); }
+  }
+
+  startTraining() {
+    this.training = true; this.trainT = 0; this.trainPopT = 0;
+    this.toast('DATASET COMPLETE — TRAINING LoRA…');
+    sfx('train');
+  }
+
+  finishTraining() {
+    this.training = false; this.unlocked[3] = true; this.ammo = 3; this.loraReady = true;
+    this.toast('⚡ LoRA READY — STYLE-STEAL AMMO EQUIPPED');
+    this.cameras.main.flash(220, 199, 125, 255, false);
+    sfx('lock');
+  }
+
+  bossDown() {
+    const b = this.boss;
+    this.phase = 'victory'; this.victoryT = 0;
+    this.boom(b.x, b.y, 0xc0392b, 26);
+    this.boom(b.x, b.y, 0xffd54f, 20);
+    sfx('boom');
+    this.cameras.main.shake(400, 0.012);
+    this.tweens.add({ targets: b.spr, scale: 0, alpha: 0, duration: 700, ease: 'Back.easeIn', onComplete: () => b.spr.destroy() });
+    for (const f of this.fans) f.spr.destroy();
+    for (const e of this.ebullets) e.sp.destroy();
+    for (const r of this.requests) r.sp.destroy();
+    for (const s of this.samples) s.sp.destroy();
+    this.fans = []; this.ebullets = []; this.requests = []; this.samples = [];
+    this.boss = null;
+    this.toast('PRICE: $0 — STYLE STOLEN.');
+  }
+
+  gameOver(cause: string) {
+    if (this.phase === 'gameover') return;
+    this.overCause = cause; this.phase = 'gameover'; this.overT = 0;
+    this.boom(this.px, this.py, 0x3fd0ff, 22);
+    this.pSpr.setVisible(false); this.barrel.setVisible(false);
+    sfx('boom');
+    this.cameras.main.shake(320, 0.012);
+  }
+
+  /* ---------- captcha (DOM) ---------- */
+  openCaptcha() {
+    this.frozen = true; this.captchaLock = true;
+    sfx('captcha');
+    const ov = document.getElementById('overlay') as any;
+    const box = document.getElementById('ovBox') as any;
+    ov.classList.remove('hidden');
+    const self = this;
+    const build = () => {
+      const emojis = ['🐱', '🚗', '🌸', '🍕', '⚽', '🎈', '🌙', '🍩', '🐟', '🔥'];
+      const target = emojis[Math.floor(Math.random() * emojis.length)];
+      const others = emojis.filter(e => e !== target);
+      const targetCount = 3 + Math.floor(Math.random() * 2);
+      const tiles: string[] = [];
+      for (let i = 0; i < targetCount; i++) tiles.push(target);
+      while (tiles.length < 9) tiles.push(others[Math.floor(Math.random() * others.length)]);
+      for (let i = tiles.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = tiles[i]; tiles[i] = tiles[j]; tiles[j] = tmp; }
+      let html = '<h2>⚠ MODERATION CAPTCHA</h2><div class="sub">The site suspects automation. Prove you are human (the irony).<br>Select every tile containing <b style="font-size:22px">' + target + '</b></div><div class="tiles" id="capTiles">';
+      tiles.forEach((e, i) => { html += '<div class="tile" data-i="' + i + '">' + e + '</div>'; });
+      html += '</div><div class="msg" id="capMsg"></div><button class="btn" id="capBtn">VERIFY</button>';
+      box.innerHTML = html;
+      const sel = new Set<number>();
+      box.querySelectorAll('.tile').forEach((el: any) => {
+        el.addEventListener('click', () => {
+          const i = +el.dataset.i;
+          if (sel.has(i)) { sel.delete(i); el.classList.remove('sel'); } else { sel.add(i); el.classList.add('sel'); }
+          sfx('clank');
+        });
+      });
+      (document.getElementById('capBtn') as any).addEventListener('click', () => {
+        let ok = true;
+        for (let i = 0; i < 9; i++) { if ((tiles[i] === target) !== sel.has(i)) { ok = false; break; } }
+        if (ok) {
+          ov.classList.add('hidden');
+          self.frozen = false; self.captchaLock = false;
+          if (self.pendingSite) { self.pendingSite.alertness = 0; self.pendingSite = null; }
+          self.likes += 10;
+          self.popup(self.px, self.py - 34, 'CAPTCHA SOLVED +10💖', '#7cfc9e');
+          sfx('lock');
+        } else {
+          self.hp -= 10;
+          sfx('hurt');
+          const msg = document.getElementById('capMsg') as any;
+          msg.textContent = 'INCORRECT — humanity in doubt. -10 HP';
+          msg.style.color = '#ff8f8f';
+          self.drawHUD();
+          if (self.hp <= 0) {
+            self.hp = 0;
+            ov.classList.add('hidden');
+            self.frozen = false; self.captchaLock = false;
+            self.gameOver('Defeated by a captcha. Truly artificial.');
+          } else {
+            setTimeout(build, 620);
+          }
+        }
+      });
+    };
+    build();
+  }
+
+  showEnd(win: boolean) {
+    const ov = document.getElementById('overlay') as any;
+    const box = document.getElementById('ovBox') as any;
+    ov.classList.remove('hidden');
+    this.frozen = true;
+    const timeS = (this.elapsed / 1000).toFixed(1);
+    const stats = '<div class="big">💖 Likes farmed: ' + this.likes + '<br>⏱ Time: ' + timeS + 's<br>🖼 Sites saturated: ' + this.saturatedCount + '/4</div>';
+    box.innerHTML = win
+      ? '<h2>🏆 THE COLLECTIVE IS BANKRUPT</h2><div class="sub">Their commission price hit $0. The feeds are now 100% synthetic. The LoRA of their style is yours forever.</div>' + stats + '<button class="btn" id="againBtn">RUN IT BACK</button>'
+      : '<h2>💀 RIG TERMINATED</h2><div class="sub">' + this.overCause + '</div>' + stats + '<button class="btn" id="againBtn">RETRY</button>';
+    (document.getElementById('againBtn') as any).addEventListener('click', () => {
+      ov.classList.add('hidden');
+      this.scene.start('Game');
+    });
+  }
+
+  /* ---------- per-frame updates ---------- */
+  updateBullets(dt: number) {
+    const sec = dt / 1000;
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const b = this.bullets[i];
+      b.x += b.vx * sec; b.y += b.vy * sec;
+      b.sp.setPosition(b.x, b.y);
+      let dead = false;
+      if (b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) { dead = true; }
+      else if (this.phase === 'sites' || this.phase === 'bossintro') {
+        for (const s of this.sites) {
+          if (!s.alive || s.done) continue;
+          const d = Math.hypot(b.x - s.x, b.y - s.y);
+          if (s.hasShield && d < s.shieldR + 6 && d > s.bodyR) {
+            const la = normAng(Math.atan2(b.y - s.y, b.x - s.x) - s.shieldRot);
+            let inGap = false;
+            for (const gp of s.gaps) { if (angDist(gp, la) < s.gapHalf) { inGap = true; break; } }
+            if (!inGap) { dead = true; this.shieldBlock(s, b); break; }
+          }
+          if (d < s.bodyR) { dead = true; s.applyHit(b.ammo); this.hitSpark(b.x, b.y, 0xffffff); break; }
+        }
+      } else if (this.phase === 'boss' && this.boss) {
+        for (const r of this.requests) {
+          if (!r.dead && Math.hypot(b.x - r.x, b.y - r.y) < 16) {
+            r.dead = true; dead = true;
+            this.likes += 5;
+            this.popup(r.x, r.y, 'REQUEST DENIED +5💖', '#9be8ff');
+            sfx('clank');
+            break;
+          }
+        }
+        if (!dead) {
+          for (const f of this.fans) {
+            if (f.alive && Math.hypot(b.x - f.x, b.y - f.y) < 16) { dead = true; this.hitFan(f, b); break; }
+          }
+        }
+        if (!dead && Math.hypot(b.x - this.boss.x, b.y - this.boss.y) < this.boss.r + 8) {
+          dead = true; this.hitBoss(b.ammo, b.x, b.y);
+        }
+      }
+      if (dead) { b.sp.destroy(); this.bullets.splice(i, 1); }
+    }
+  }
+
+  updateReactions(dt: number, sec: number) {
+    // bad reactions
+    for (let i = this.ebullets.length - 1; i >= 0; i--) {
+      const e = this.ebullets[i];
+      e.x += e.vx * sec; e.y += e.vy * sec; e.life -= dt;
+      e.sp.setPosition(e.x, e.y);
+      e.sp.rotation = Math.sin(this.elapsed * 0.01 + e.ph) * 0.35;
+      if (Math.hypot(e.x - this.px, e.y - this.py) < 20) {
+        this.damagePlayer(e.dmg);
+        this.hitSpark(e.x, e.y, 0xff4d4d);
+        e.sp.destroy(); this.ebullets.splice(i, 1);
+        continue;
+      }
+      if (e.life <= 0 || e.x < -30 || e.x > W + 30 || e.y < -30 || e.y > H + 30) { e.sp.destroy(); this.ebullets.splice(i, 1); }
+    }
+    // likes
+    for (let i = this.likesArr.length - 1; i >= 0; i--) {
+      const l = this.likesArr[i];
+      l.life -= dt;
+      if (l.life < 800) l.sp.setAlpha(Math.max(0, l.life / 800));
+      const d = Math.hypot(this.px - l.x, this.py - l.y);
+      if (d < 120 || (this.vortexOn && d < 180)) {
+        const a = Math.atan2(this.py - l.y, this.px - l.x);
+        l.x += Math.cos(a) * 360 * sec; l.y += Math.sin(a) * 360 * sec;
+      } else {
+        l.x += l.vx * sec; l.y += l.vy * sec;
+      }
+      l.sp.setPosition(l.x, l.y);
+      if (d < 24) {
+        this.likes += 1; this.hp = Math.min(100, this.hp + 2);
+        this.popup(this.px, this.py - 30, '+💖', '#ff9fc2');
+        sfx('like');
+        l.sp.destroy(); this.likesArr.splice(i, 1);
+        continue;
+      }
+      if (l.life <= 0) { l.sp.destroy(); this.likesArr.splice(i, 1); }
+    }
+    // captcha orb
+    const o = this.orb;
+    if (o) {
+      o.life -= dt;
+      const want = Math.atan2(this.py - o.y, this.px - o.x);
+      let dAng = angDist(o.ang, want);
+      const maxT = 1.5 * sec;
+      dAng = Phaser.Math.Clamp(dAng, -maxT, maxT);
+      o.ang += dAng;
+      o.x += Math.cos(o.ang) * o.spd * sec;
+      o.y += Math.sin(o.ang) * o.spd * sec;
+      o.c.setPosition(o.x, o.y);
+      o.c.rotation += 0.06;
+      const pulse = 1 + Math.sin(this.elapsed * 0.012) * 0.12;
+      o.c.setScale(pulse);
+      if (Math.hypot(o.x - this.px, o.y - this.py) < 22) {
+        this.orb = null; o.c.destroy();
+        this.openCaptcha();
+        return;
+      }
+      if (o.life <= 0 || o.x < -30 || o.x > W + 30 || o.y < -30 || o.y > H + 30) {
+        this.orb = null; o.c.destroy();
+        this.popup(this.px, this.py - 30, 'CAPTCHA EVADED', '#7cfc9e');
+        if (this.pendingSite) { this.pendingSite.alertness = 40; this.pendingSite = null; }
+      }
+    }
+  }
+
+  updateBoss(dt: number, sec: number) {
+    const b = this.boss;
+    if (!b) return;
+    b.t += dt;
+    b.x = W / 2 + Math.sin(b.t * 0.00038) * 190;
+    b.y = 150 + Math.sin(b.t * 0.00085) * 26;
+    b.spr.setPosition(b.x, b.y);
+    b.spr.rotation = Math.sin(b.t * 0.001) * 0.06;
+
+    this.atkT -= dt;
+    if (this.atkT <= 0) {
+      this.atkT = 2100;
+      const base = Math.atan2(this.py - b.y, this.px - b.x);
+      for (const off of [-0.26, 0, 0.26]) this.spawnEB(b.x, b.y, base + off, 205, 'bossb', 10);
+      sfx('hit');
+    }
+    this.ringT -= dt;
+    if (this.ringT <= 0) {
+      this.ringT = 6500;
+      const n = 13, off = Math.random() * TAU;
+      for (let i = 0; i < n; i++) this.spawnEB(b.x, b.y, off + i * TAU / n, 145, 'bossb', 10);
+      sfx('boom');
+    }
+    this.sampleT -= dt;
+    if (this.sampleT <= 0 && !this.loraReady && this.samples.length < 8) {
+      this.sampleT = 2200;
+      this.spawnSample();
+    }
+
+    // fans
+    for (const f of this.fans) {
+      if (f.alive) {
+        f.a += dt * 0.0011;
+        f.x = b.x + Math.cos(f.a) * f.dist;
+        f.y = b.y + Math.sin(f.a) * f.dist;
+        f.spr.setPosition(f.x, f.y);
+        f.spr.rotation = Math.sin(this.elapsed * 0.005 + f.a) * 0.2;
+        f.reqT -= dt;
+        if (f.reqT <= 0) { f.reqT = 6500 + Math.random() * 3500; this.spawnRequest(f.x, f.y); }
+      } else {
+        f.resT -= dt;
+        if (f.resT <= 0) {
+          f.alive = true; f.hp = 30; f.spr.setAlpha(1);
+          this.popup(b.x, b.y - 60, 'A NEW FAN JOINS', '#ffb3c6');
+        }
+      }
+    }
+
+    // samples (LoRA dataset)
+    for (let i = this.samples.length - 1; i >= 0; i--) {
+      const s = this.samples[i];
+      s.life -= dt;
+      s.x += (s.vx + Math.sin(this.elapsed * 0.003 + s.ph) * 12) * sec;
+      s.y += (s.vy + Math.cos(this.elapsed * 0.0025 + s.ph) * 12) * sec;
+      const d = Math.hypot(s.x - this.px, s.y - this.py);
+      if (this.vortexOn && d < 170) {
+        const a = Math.atan2(this.py - s.y, this.px - s.x);
+        s.x += Math.cos(a) * 430 * sec;
+        s.y += Math.sin(a) * 430 * sec;
+        s.sp.rotation += 0.25;
+      }
+      s.sp.setPosition(s.x, s.y);
+      if (d < 26) {
+        if (!this.loraReady && !this.training) {
+          this.dataset++;
+          this.popup(this.px, this.py - 34, '+ART ' + this.dataset + '/10', '#c77dff');
+          sfx('like');
+          if (this.dataset >= 10) this.startTraining();
+        }
+        s.sp.destroy(); this.samples.splice(i, 1);
+        continue;
+      }
+      if (s.life <= 0) { this.tweens.add({ targets: s.sp, alpha: 0, duration: 300, onComplete: () => s.sp.destroy() }); this.samples.splice(i, 1); }
+    }
+
+    // commission requests fly to boss and heal
+    for (let i = this.requests.length - 1; i >= 0; i--) {
+      const r = this.requests[i];
+      r.life -= dt;
+      if (r.dead || r.life <= 0) {
+        this.tweens.add({ targets: r.sp, alpha: 0, scale: 0.4, duration: 200, onComplete: () => r.sp.destroy() });
+        this.requests.splice(i, 1);
+        continue;
+      }
+      const a = Math.atan2(b.y - r.y, b.x - r.x);
+      r.x += Math.cos(a) * 95 * sec;
+      r.y += Math.sin(a) * 95 * sec;
+      r.sp.setPosition(r.x, r.y);
+      r.sp.rotation = Math.sin(this.elapsed * 0.008 + i) * 0.25;
+      if (Math.hypot(r.x - b.x, r.y - b.y) < b.r) {
+        b.hp = Math.min(b.max, b.hp + 180);
+        this.popup(b.x, b.y - 60, '+$180 COMMISSION FILLED', '#ff8f8f');
+        sfx('cash');
+        r.sp.destroy();
+        this.requests.splice(i, 1);
+      }
+    }
+
+    // training stage
+    if (this.training) {
+      this.trainT += dt;
+      this.trainPopT -= dt;
+      if (this.trainPopT <= 0) {
+        this.trainPopT = 700;
+        const loss = Math.max(0.05, 0.9 - (this.trainT / 3600) * 0.85);
+        this.popup(this.px, this.py - 44, 'loss ' + loss.toFixed(2), '#c77dff');
+      }
+      if (this.trainT >= 3600) this.finishTraining();
+    }
+  }
+
+  drawVortex(dt: number) {
+    const g = this.vortexG;
+    g.clear();
+    if (!this.vortexOn) return;
+    this.vortexRot += dt * 0.006;
+    for (let ring = 0; ring < 3; ring++) {
+      const rr = 62 + ring * 40 + Math.sin(this.elapsed * 0.01 + ring) * 6;
+      g.lineStyle(2, 0xc77dff, 0.5 - ring * 0.13);
+      for (let k = 0; k < 3; k++) {
+        const a0 = this.vortexRot * (ring % 2 ? -1 : 1) + k * TAU / 3;
+        g.beginPath();
+        g.arc(this.px, this.py, rr, a0, a0 + 1.2);
+        g.strokePath();
+      }
+    }
+  }
+
+  drawHUD() {
+    const g = this.hudG;
+    g.clear();
+    // HP
+    g.fillStyle(0x111827, 0.9); g.fillRect(18, 12, 204, 16);
+    g.fillStyle(this.hp > 35 ? 0x4ade80 : 0xff5f5f, 1);
+    g.fillRect(20, 14, Math.max(0, this.hp) * 2, 12);
+    g.lineStyle(1, 0x3a4763, 1); g.strokeRect(18, 12, 204, 16);
+    this.hudTxt.hp.setText('RIG INTEGRITY ' + Math.ceil(this.hp) + '/100');
+    this.hudTxt.likes.setText('💖 ' + this.likes);
+    // ammo slots
+    for (let i = 0; i < 4; i++) {
+      const s = this.ammoSlots[i];
+      const gg = s.g;
+      gg.clear();
+      const locked = i === 3 && !this.unlocked[3];
+      gg.fillStyle(locked ? 0x0d1120 : 0x131b30, 0.92);
+      gg.fillRoundedRect(s.x, s.y, 110, 48, 8);
+      const active = this.ammo === i;
+      const acCol = i < 3 ? THEMES[i].color : 0xc77dff;
+      gg.lineStyle(2, active ? acCol : 0x2c3a5e, active ? 1 : 0.85);
+      gg.strokeRoundedRect(s.x, s.y, 110, 48, 8);
+      s.t3.setText(locked ? '🔒' : (i < 3 ? THEMES[i].icon : '⚡'));
+      s.t2.setAlpha(locked ? 0.4 : 1);
+      s.t1.setAlpha(locked ? 0.4 : 1);
+      s.t2.setColor(active ? (i < 3 ? THEMES[i].hex : '#c77dff') : '#8fa3c8');
+    }
+    // sites count
+    if (this.phase === 'sites' || this.phase === 'bossintro') {
+      this.hudTxt.sites.setText('SITES SATURATED ' + this.saturatedCount + '/' + this.sites.length);
+      this.hudTxt.sites.setAlpha(1);
+    } else this.hudTxt.sites.setAlpha(0);
+    // boss bar
+    if (this.boss) {
+      const bw = 520, bx = (W - bw) / 2, by = 14;
+      g.fillStyle(0x111827, 0.9); g.fillRect(bx, by, bw, 18);
+      g.fillStyle(0xff5f5f, 1); g.fillRect(bx + 2, by + 2, (bw - 4) * Math.max(0, this.boss.hp) / this.boss.max, 14);
+      g.lineStyle(1, 0x7a2c2c, 1); g.strokeRect(bx, by, bw, 18);
+      this.bossBarT.setText('THE COMMISSION COLLECTIVE — PRICE: $' + Math.max(0, Math.ceil(this.boss.hp)));
+      this.bossBarT.setAlpha(1);
+    } else this.bossBarT.setAlpha(0);
+    // dataset / training bar
+    if (this.phase === 'boss') {
+      const dw = 340, dx = (W - dw) / 2, dy = H - 64;
+      g.fillStyle(0x111827, 0.9); g.fillRect(dx, dy, dw, 12);
+      let frac = this.dataset / 10, col = 0xc77dff, label = 'DATASET ' + this.dataset + '/10 — hold SPACE/RMB near boss art to vortex it in';
+      if (this.training) { frac = this.trainT / 3600; col = 0x9b6bff; label = 'TRAINING LoRA… epoch ' + Math.min(3, Math.floor(this.trainT / 1200) + 1) + '/3 — SURVIVE'; }
+      else if (this.loraReady) { frac = 1; label = '⚡ LoRA v1 READY — firing style-steal ammo [4]'; }
+      g.fillStyle(col, 1); g.fillRect(dx + 2, dy + 2, (dw - 4) * Phaser.Math.Clamp(frac, 0, 1), 8);
+      g.lineStyle(1, 0x4a3a6e, 1); g.strokeRect(dx, dy, dw, 12);
+      this.dsT.setText(label);
+      this.dsT.setAlpha(1);
+    } else this.dsT.setAlpha(0);
+    // hint
+    this.hudTxt.hint.setText(this.phase === 'boss'
+      ? 'SPACE/RMB: LoRA vortex · fans heal the boss — intercept their 📜 requests'
+      : 'Match ammo theme [1][2][3] to site theme for likes 💖 & full saturation damage');
+  }
+
+  /* ---------- main update ---------- */
+  update(time: number, delta: number) {
+    const dt = Math.min(delta, 40);
+    const JD = Phaser.Input.Keyboard.JustDown;
+    if (this.phase !== 'victory' && this.phase !== 'gameover' && !this.captchaLock) {
+      if (JD(this.pKey)) {
+        this.frozen = !this.frozen;
+        if (this.frozen) this.toast('PAUSED — press P');
+      }
+    }
+    if (this.frozen) return;
+    this.elapsed += dt;
+    const sec = dt / 1000;
+
+    if (this.phase === 'victory') {
+      this.victoryT += dt;
+      if (this.victoryT > 1600 && !this.vicShown) { this.vicShown = true; this.showEnd(true); }
+      return;
+    }
+    if (this.phase === 'gameover') {
+      this.overT += dt;
+      if (this.overT > 1000 && !this.overShown) { this.overShown = true; this.showEnd(false); }
+      return;
+    }
+
+    // ---- player movement ----
+    let dx = 0, dy = 0;
+    if (this.keyA.isDown || this.leftK.isDown) dx -= 1;
+    if (this.keyD.isDown || this.rightK.isDown) dx += 1;
+    if (this.keyW.isDown || this.up.isDown) dy -= 1;
+    if (this.keyS.isDown || this.down.isDown) dy += 1;
+    if (dx || dy) { const l = Math.hypot(dx, dy); dx /= l; dy /= l; }
+    const spd = this.vortexOn ? 130 : 265;
+    this.px = Phaser.Math.Clamp(this.px + dx * spd * sec, 26, W - 26);
+    this.py = Phaser.Math.Clamp(this.py + dy * spd * sec, 96, H - 30);
+    this.pSpr.setPosition(this.px, this.py);
+    this.barrel.setPosition(this.px, this.py);
+    const pt = this.input.activePointer;
+    this.barrel.rotation = Math.atan2(pt.y - this.py, pt.x - this.px);
+    this.fireCd -= dt; this.invuln -= dt;
+    if (this.invuln > 0) this.pSpr.setAlpha(Math.sin(this.elapsed * 0.05) > 0 ? 0.35 : 0.95);
+    else this.pSpr.setAlpha(1);
+
+    // ---- vortex (secondary fire) ----
+    this.vortexOn = (this.spKey.isDown || pt.rightButtonDown()) && this.phase === 'boss' && !this.training;
+    this.drawVortex(dt);
+
+    // ---- ammo switching ----
+    if (JD(this.k1)) this.tryAmmo(0);
+    if (JD(this.k2)) this.tryAmmo(1);
+    if (JD(this.k3)) this.tryAmmo(2);
+    if (JD(this.k4)) this.tryAmmo(3);
+
+    // ---- primary fire ----
+    if (pt.leftButtonDown() && !this.vortexOn && !this.training && this.fireCd <= 0 &&
+        (this.phase === 'sites' || this.phase === 'bossintro' || this.phase === 'boss')) {
+      this.fireBullet();
+      this.fireCd = 150;
+    }
+
+    // ---- world ----
+    if (this.phase === 'sites' || this.phase === 'bossintro') {
+      for (const s of this.sites) s.update(dt);
+    }
+    if (this.phase === 'bossintro') {
+      this.introT += dt;
+      if (this.introT >= 2400) this.spawnBoss();
+    }
+    this.updateBullets(dt);
+    this.updateReactions(dt, sec);
+    if (this.phase === 'boss') this.updateBoss(dt, sec);
+
+    this.drawHUD();
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: W,
+  height: H,
+  backgroundColor: '#070a14',
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scene: [MenuScene, GameScene]
+};
+new Phaser.Game(config);
+</script>
+
+<script>
+(function () {
+  var src = document.getElementById('srcts').textContent;
+  var js = ts.transpileModule(src, { compilerOptions: { target: 'ES2020' } }).outputText;
+  var s = document.createElement('script');
+  s.textContent = js;
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>
