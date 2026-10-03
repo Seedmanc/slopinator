@@ -1,0 +1,15 @@
+html,body{margin:0;padding:0;background:#05070f;height:100%;overflow:hidden;font-family:'Courier New',monospace}
+#game{width:100vw;height:100vh}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,7,18,.62);backdrop-filter:blur(3px);z-index:10}
+#overlay.hidden{display:none}
+.panel{background:#0d1226;border:2px solid #3fd0ff;border-radius:12px;padding:26px 30px;max-width:560px;color:#dfe8ff;box-shadow:0 0 40px rgba(63,208,255,.25)}
+.panel h2{margin:0 0 10px;color:#ffd54f;letter-spacing:2px}
+.panel .sub{color:#8fa3c8;font-size:13px;margin-bottom:14px;line-height:1.5}
+.panel .big{font-size:16px;line-height:1.8;margin:10px 0}
+.tiles{display:grid;grid-template-columns:repeat(3,76px);gap:8px;margin:14px 0}
+.tile{width:76px;height:76px;font-size:36px;background:#161d36;border:2px solid #2c3a5e;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .08s;user-select:none}
+.tile:hover{transform:scale(1.06)}
+.tile.sel{border-color:#ffd54f;background:#3a3110;box-shadow:0 0 10px rgba(255,213,79,.5)}
+.btn{background:#123;border:2px solid #3fd0ff;color:#bfeaff;padding:10px 22px;font-family:inherit;font-size:15px;border-radius:8px;cursor:pointer;letter-spacing:1px;margin-top:6px}
+.btn:hover{background:#3fd0ff;color:#04121e}
+.msg{color:#ff8f8f;min-height:18px;font-size:13px}
