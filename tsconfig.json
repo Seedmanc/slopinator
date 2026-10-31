@@ -5,6 +5,7 @@
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
     "strict": true,
+    "noImplicitAny": false,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
@@ -13,7 +14,6 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
@@ -23,6 +23,9 @@
       "ES2022",
       "DOM"
     ],
+      "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
+      "types": ["phaser"]
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

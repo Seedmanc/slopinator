@@ -3,6 +3,7 @@ import { PhaserGame } from './phaser-game.component';
 import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
 import { EventBus } from '../game/EventBus';
+import Phaser from "phaser";
 
 @Component({
     selector: 'app-root',
@@ -10,9 +11,9 @@ import { EventBus } from '../game/EventBus';
     imports: [CommonModule, PhaserGame],
     templateUrl: './app.component.html'
 })
+// @ts-ignore
 export class AppComponent
 {
-
     public spritePosition = { x: 0, y: 0 };
     public canMoveSprite = false;
 
