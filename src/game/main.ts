@@ -4,28 +4,50 @@ import { Game as MainGame } from './scenes/Game';
 import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
+import CircularProgressPlugin from 'phaser4-rex-plugins/plugins/circularprogress-plugin.js';
+import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plugin";
+
 
 // Find out more information about the Game Config at:
 // https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
-const config: Phaser.Types.Core.GameConfig = {
+export const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
-    width: 1024,
-    height: 768,
-    parent: 'game-container',
-    backgroundColor: '#028af8',
+    width: 1000,
+    height: 1000,
+    fps: {
+        target: 60
+    },
+    disableContextMenu: true,
+    backgroundColor: '#028af880',
+    //transparent: true,
     scene: [
-        Boot,
+       // Boot,
         Preloader,
         MainMenu,
         MainGame,
         GameOver
-    ]
+    ],
+    physics: {
+        default: 'arcade',
+        arcade: {
+             debug: true
+        }
+    },
+    plugins: {
+        global: [{
+            key: 'rexCircularProgressPlugin',
+            plugin: CircularProgressPlugin,
+            start: true
+        },{
+            key: 'rexEightDirection',
+            plugin: EightDirectionPlugin,
+            start: true
+        }]
+    },
 };
 
 const StartGame = (parent: string) => {
-
     return new Game({ ...config, parent });
-
 }
 
 export default StartGame;

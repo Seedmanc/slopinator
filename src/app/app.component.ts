@@ -9,9 +9,9 @@ import Phaser from "phaser";
     selector: 'app-root',
     standalone: true,
     imports: [CommonModule, PhaserGame],
-    templateUrl: './app.component.html'
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.css'
 })
-// @ts-ignore
 export class AppComponent
 {
     public spritePosition = { x: 0, y: 0 };
