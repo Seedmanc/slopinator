@@ -8,6 +8,7 @@ export default class Player extends Phaser.GameObjects.Container {
     health: number;
     cooldown!: CircularProgress;
 
+    body : Phaser.Physics.Arcade.Body;
     eightDirection: EightDirection;
     barrel: Phaser.GameObjects.Image;
     #sprite: Phaser.GameObjects.Image;

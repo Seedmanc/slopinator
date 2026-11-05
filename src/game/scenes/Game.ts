@@ -17,11 +17,12 @@ export class Game extends Scene {
     }
 
     create() {
-        // @ts-ignore
-        this.projectiles = this.physics.add.group({// why does it say argument is not assignable
+        this.projectiles = this.physics.add.group({
             allowGravity: false,
-            classType: Projectile,
-            maxSize: 2
+            classType: Projectile as any, // the shit i have to put up with...
+            maxSize: 2,
+            collideWorldBounds: true,
+            createCallback: (bullet: Projectile) => bullet.body.onWorldBounds = true
         });
 
         this.camera = this.cameras.main;
@@ -39,17 +40,15 @@ export class Game extends Scene {
             .add(this.player, { cursorKeys });
 
         this.physics.add.collider(this.player, zone);
-        // @ts-ignore
         this.player.body.setCollideWorldBounds(true);
 
         this.add.existing(this.player);
 
 
 
-        this.physics.world.on('worldbounds', (body) => {console.log(body)
+        this.physics.world.on('worldbounds', (body) => {
             if (body.gameObject instanceof Projectile) {
-                this.projectiles.killAndHide(body.gameObject); //i don't want to write 2 lines every time here
-                body.enable = false;
+                body.gameObject.disableBody(true, true);
             }
         });
 
@@ -57,7 +56,6 @@ export class Game extends Scene {
     }
 
     update() {
-
         if (this.input.activePointer.leftButtonDown() && this.time.now >= this.nextFireAt) {
             this.fireBullet();
             this.nextFireAt = this.time.now + 500;
@@ -65,19 +63,9 @@ export class Game extends Scene {
     }
 
     fireBullet() {
-        const bullet = this.projectiles.get(this.player.x, this.player.y) as Projectile;
-
-        if (!bullet) {
-            return;
-        }
-
-        bullet.setActive(true); //i don't want to write 3 lines every time here
-        bullet.setVisible(true);
-        bullet.body.enable = true;
-        // @ts-ignore
-        bullet.body.setCollideWorldBounds(true, 0, 0, true); //if I remove this, the onworldbounds callback never fires
-
-        this.physics.velocityFromAngle(this.player.barrel.angle, 500, bullet.body.velocity);
+        const bullet = this.projectiles.get();
+        bullet?.enableBody( true, this.player.x, this.player.y, true, true);
+        this.physics.velocityFromAngle(this.player.barrel.angle, 500, bullet?.body.velocity);
     }
 
     changeScene() {
