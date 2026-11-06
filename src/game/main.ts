@@ -33,6 +33,9 @@ export const config: Phaser.Types.Core.GameConfig = {
              debug: true
         }
     },
+    input: {
+        windowEvents: false
+    },
     plugins: {
         global: [{
             key: 'rexCircularProgressPlugin',

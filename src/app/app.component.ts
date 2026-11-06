@@ -4,11 +4,12 @@ import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
 import { EventBus } from '../game/EventBus';
 import Phaser from "phaser";
+import {FormsModule} from "@angular/forms";
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [CommonModule, PhaserGame],
+    imports: [CommonModule, PhaserGame, FormsModule],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
@@ -16,6 +17,7 @@ export class AppComponent
 {
     public spritePosition = { x: 0, y: 0 };
     public canMoveSprite = false;
+    public batchSize;
 
     // New way to get the component instance
     phaserRef = viewChild.required(PhaserGame);
@@ -25,6 +27,9 @@ export class AppComponent
         // You can now safely set up your EventBus subscriptions here
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
+        });
+        EventBus.on('batch-size-changed', (size) => {
+            this.batchSize = size;
         });
     }
 
@@ -66,5 +71,9 @@ export class AppComponent
                 repeat: -1
             });
         }
+    }
+
+    onBatchChange() {
+        EventBus.emit('batch-size', this.batchSize);
     }
 }

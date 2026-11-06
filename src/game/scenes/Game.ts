@@ -13,6 +13,7 @@ export class Game extends Scene {
     player: Player;
     projectiles: Phaser.Physics.Arcade.Group;
     nextFireAt=0;
+    fireDelay = 400;
 
     constructor() {
         super('Game');
@@ -22,7 +23,7 @@ export class Game extends Scene {
         this.projectiles = this.physics.add.group({
             allowGravity: false,
             classType: Projectile as any, // the shit i have to put up with...
-            maxSize: 4,
+            maxSize: 10,
             collideWorldBounds: true,
             createCallback: (bullet: Projectile) => bullet.body.onWorldBounds = true
         });
@@ -51,7 +52,11 @@ export class Game extends Scene {
             }
         });
 
+        this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
+        this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
+
         EventBus.emit('current-scene-ready', this);
+        EventBus.on('batch-size', size=>this.player.updateBatch(size));
     }
 
     update() {
@@ -59,7 +64,7 @@ export class Game extends Scene {
             this.time.now >= this.nextFireAt &&
             this.projectiles.getTotalFree() >= this.player.batchSize) {
             this.fireBullets();
-            this.nextFireAt = this.time.now + 500;
+            this.nextFireAt = this.time.now + this.fireDelay*Math.sqrt(this.player.batchSize);
         }
     }
 
@@ -70,7 +75,7 @@ export class Game extends Scene {
             let x = matrix.getX(1,1);
             let y = matrix.getY(1,1);
             bullet?.enableBody( true,   x,  y, true, true);
-            this.physics.velocityFromAngle(this.player.barrel.angle, 500, bullet?.body.velocity);
+            this.physics.velocityFromAngle(this.player.barrel.angle, this.fireDelay, bullet?.body.velocity);
             bullet?.setAngle(0);
         })
     }

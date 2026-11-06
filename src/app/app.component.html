@@ -1,7 +1,9 @@
 <main id="app">
     <phaser-game />
     <div>
-        <div>
+        <label for="batchSize">Batch size</label>
+        <input type="range" id="batchSize" name="batchSize" min="1" max="4" step="1" [(ngModel)]="batchSize"  (ngModelChange)="onBatchChange()" >
+        <!--<div>
             <button class="button" (click)="changeScene()">Change Scene</button>
         </div>
         <div>
@@ -13,6 +15,6 @@
         </div>
         <div>
             <button class="button" (click)="addSprite()">Add New Sprite</button>
-        </div>
+        </div>-->
     </div>
 </main>
