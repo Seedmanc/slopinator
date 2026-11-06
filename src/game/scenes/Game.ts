@@ -1,9 +1,11 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import Phaser from "phaser";
 import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plugin";
 import Player from "../models/Player";
 import Projectile from "../models/Projectile";
 
+const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
@@ -20,7 +22,7 @@ export class Game extends Scene {
         this.projectiles = this.physics.add.group({
             allowGravity: false,
             classType: Projectile as any, // the shit i have to put up with...
-            maxSize: 2,
+            maxSize: 4,
             collideWorldBounds: true,
             createCallback: (bullet: Projectile) => bullet.body.onWorldBounds = true
         });
@@ -43,9 +45,6 @@ export class Game extends Scene {
         this.player.body.setCollideWorldBounds(true);
 
         this.add.existing(this.player);
-
-
-
         this.physics.world.on('worldbounds', (body) => {
             if (body.gameObject instanceof Projectile) {
                 body.gameObject.disableBody(true, true);
@@ -56,16 +55,24 @@ export class Game extends Scene {
     }
 
     update() {
-        if (this.input.activePointer.leftButtonDown() && this.time.now >= this.nextFireAt) {
-            this.fireBullet();
+        if (this.input.activePointer.leftButtonDown() &&
+            this.time.now >= this.nextFireAt &&
+            this.projectiles.getTotalFree() >= this.player.batchSize) {
+            this.fireBullets();
             this.nextFireAt = this.time.now + 500;
         }
     }
 
-    fireBullet() {
-        const bullet = this.projectiles.get();
-        bullet?.enableBody( true, this.player.x, this.player.y, true, true);
-        this.physics.velocityFromAngle(this.player.barrel.angle, 500, bullet?.body.velocity);
+    fireBullets() {
+        this.player.batchPreview.each(el => {
+            const bullet = this.projectiles.get();
+            el.getWorldTransformMatrix(matrix);
+            let x = matrix.getX(1,1);
+            let y = matrix.getY(1,1);
+            bullet?.enableBody( true,   x,  y, true, true);
+            this.physics.velocityFromAngle(this.player.barrel.angle, 500, bullet?.body.velocity);
+            bullet?.setAngle(0);
+        })
     }
 
     changeScene() {
