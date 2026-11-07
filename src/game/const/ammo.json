@@ -1,0 +1,12 @@
+[
+    {
+        "type": "anime",
+        "color": "pink"
+    }, {
+        "type": "base",
+        "color": "blue"
+    }, {
+        "type": "realism",
+        "color": "green"
+    }
+]
