@@ -10,6 +10,7 @@ import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plu
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import CircularProgressCanvas = UIPlugin.CircularProgressCanvas;
 import ammoConfig from '../const/ammo.json';
+import Projectile from "./Projectile";
 
 export default class Player extends Phaser.GameObjects.Container {
     health: number;
@@ -23,7 +24,7 @@ export default class Player extends Phaser.GameObjects.Container {
     fireDelay = 400;
     stateMachine: StateMachine
     defaultSpeed = 200;
-    private ammoIndex: number = 1;
+    ammoIndex: number = 1;
 
     get ammo(): { type: string, color: string } {
         return ammoConfig[this.ammoIndex];
@@ -77,7 +78,7 @@ export default class Player extends Phaser.GameObjects.Container {
         this.batchPreview.removeAll();
         const rectangles = [] ;
         for (let i = 0; i < this.batchSize; i++) {
-            let rect = this.scene.add.rectangle(0, 0, 10, 10, 0xffffff,0.5);
+            let rect = this.scene.add.rectangle(0, 0, 10, 10, Phaser.Display.Color.ValueToColor(this.ammo.color).color,0.7);
             rectangles.push(rect);
             this.batchPreview.add(rect);
         }
@@ -94,7 +95,8 @@ export default class Player extends Phaser.GameObjects.Container {
 
     fireBullets() {
         this.batchPreview.each(el => {
-            const bullet = this.scene.projectiles.get();
+            const bullet:Projectile = this.scene.projectiles.get()
+            bullet.setTint(Phaser.Display.Color.ValueToColor(this.ammo.color).color);
             el.getWorldTransformMatrix(matrix);
             let x = matrix.getX(1,1);
             let y = matrix.getY(1,1);
@@ -106,7 +108,7 @@ export default class Player extends Phaser.GameObjects.Container {
 
     setAmmo(pendingAmmo: number) {
         this.ammoIndex = pendingAmmo;
-        console.log(this.ammo)
+        this.updateBatch()
     }
 
     private addStates() {
