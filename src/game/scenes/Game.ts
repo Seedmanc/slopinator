@@ -1,8 +1,9 @@
-import { EventBus } from '../EventBus';
-import { Scene } from 'phaser';
-import Phaser from "phaser";
+import {EventBus} from '../EventBus';
+import Phaser, {Scene} from 'phaser';
 import Player from "../models/Player";
 import Projectile from "../models/Projectile";
+import Enemy from "../models/Enemy";
+import {Affinity} from "../const/ResourceKeys";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 export class Game extends Scene {
@@ -11,6 +12,7 @@ export class Game extends Scene {
     player: Player;
     projectiles: Phaser.Physics.Arcade.Group;
     nextFireAt=0;
+    enemy: Enemy;
 
     constructor() {
         super('Game');
@@ -42,6 +44,12 @@ export class Game extends Scene {
 
         this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
         this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
+
+        this.enemy = new Enemy(this, this.scale.width / 2, this.scale.height * 0.25, Affinity.Anime)
+        this.physics.add.overlap(this.enemy, this.projectiles, (enemy:Enemy, proj:Projectile) => {
+            enemy.hit(proj);
+            proj.disableBody(true, true);
+        });
 
         EventBus.emit('current-scene-ready', this);
         EventBus.on('batch-size', size=>this.player.updateBatch(size));

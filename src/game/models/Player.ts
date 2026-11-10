@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import K from "../const/ResourceKeys";
+import K, {Affinity} from "../const/ResourceKeys";
 import EightDirection from "phaser4-rex-plugins/plugins/behaviors/eightdirection/EightDirection";
 import {EventBus} from "../EventBus";
 import {Game, matrix} from "../scenes/Game";
@@ -24,7 +24,7 @@ export default class Player extends Phaser.GameObjects.Container {
     fireDelay = 400;
     stateMachine: StateMachine
     defaultSpeed = 200;
-    ammoIndex: number = 1;
+    ammoIndex: Affinity = 1;
 
     get ammo(): { type: string, color: string } {
         return ammoConfig[this.ammoIndex];
@@ -96,7 +96,7 @@ export default class Player extends Phaser.GameObjects.Container {
     fireBullets() {
         this.batchPreview.each(el => {
             const bullet:Projectile = this.scene.projectiles.get()
-            bullet.setTint(Phaser.Display.Color.ValueToColor(this.ammo.color).color);
+            bullet.setAffinity(this.ammoIndex);
             el.getWorldTransformMatrix(matrix);
             let x = matrix.getX(1,1);
             let y = matrix.getY(1,1);

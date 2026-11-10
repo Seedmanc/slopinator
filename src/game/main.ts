@@ -6,6 +6,8 @@ import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import CircularProgressCanvasPlugin from 'phaser4-rex-plugins/plugins/circularprogresscanvas-plugin.js';
 import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plugin";
+import LineProgressCanvasPlugin from 'phaser4-rex-plugins/plugins/lineprogresscanvas-plugin.js';
+
 
 
 // Find out more information about the Game Config at:
@@ -44,6 +46,10 @@ export const config: Phaser.Types.Core.GameConfig = {
         },{
             key: 'rexEightDirection',
             plugin: EightDirectionPlugin,
+            start: true
+        } ,{
+            key: 'rexLineProgressCanvasPlugin',
+            plugin: LineProgressCanvasPlugin,
             start: true
         } ]
     },

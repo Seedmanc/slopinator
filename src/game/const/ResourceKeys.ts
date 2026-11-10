@@ -1,7 +1,8 @@
 enum keys {
     Player,
     Barrel,
-    Projectile
+    Projectile,
+    Website
 }
 
 const K = Object.fromEntries(
@@ -9,3 +10,9 @@ const K = Object.fromEntries(
 ) as Record<keyof typeof keys, string>;
 
 export default K;
+
+export enum Affinity {
+    Anime,
+    Base,
+    Realism
+}

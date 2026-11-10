@@ -51,6 +51,14 @@ export class Preloader extends Scene
         g.generateTexture(K.Barrel, 30, 10);
         // projectile
         g.clear(); g.fillStyle(0xeeeeee, 1); g.fillRect(0, 0, 12, 12);  g.generateTexture(K.Projectile, 12, 12);
+        // website
+        g.clear();
+        g.fillStyle(0x1b2233,1); g.fillRoundedRect(0,0,96,76,6);
+        g.lineStyle(2,0x3a4763,1); g.strokeRoundedRect(0,0,96,76,6);
+        g.fillStyle(0x2a3550,1); g.fillRoundedRect(0,0,96,16,{tl:6,tr:6,bl:0,br:0});
+        g.fillStyle(0xff5f5f,1); g.fillCircle(8,8,2.5); g.fillStyle(0xffd54f,1); g.fillCircle(16,8,2.5); g.fillStyle(0x5fffb0,1); g.fillCircle(24,8,2.5);
+        g.fillStyle(0x232c44,1);
+        g.generateTexture(K.Website,96,76);
     }
 
     create ()
