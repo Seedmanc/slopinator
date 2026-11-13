@@ -4,13 +4,18 @@ import Player from "../models/Player";
 import Projectile from "../models/Projectile";
 import Enemy from "../models/Enemy";
 import {Affinity} from "../const/ResourceKeys";
+import Like from "../models/Like";
+import Dislike from "../models/Dislike";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
+const Disposables = [Projectile, Dislike, Like];
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
     player: Player;
     projectiles: Phaser.Physics.Arcade.Group;
+    likes: Phaser.Physics.Arcade.Group;
+    dislikes: Phaser.Physics.Arcade.Group;
     nextFireAt=0;
     enemy: Enemy;
 
@@ -18,26 +23,29 @@ export class Game extends Scene {
         super('Game');
     }
 
-    create() {
-        this.projectiles = this.physics.add.group({
-            allowGravity: false,
-            classType: Projectile as any, // the shit i have to put up with...
-            maxSize: 10,
+    private group<T>(type) {
+        this[type.name.toLowerCase()+'s'] = this.physics.add.group({
+            allowGravity:  true,
+            classType: type,
+            maxSize: 16,
             collideWorldBounds: true,
-            createCallback: (bullet: Projectile) => bullet.body.onWorldBounds = true
+            // @ts-ignore
+            createCallback: (bullet: T) => bullet.body.onWorldBounds = true //ridiculous typescript crap
         });
+    }
+
+    create() {
+        Disposables.forEach(T => this.group<typeof T>(T));
 
         this.camera = this.cameras.main;
-
         this.player = new Player(this, this.scale.width / 2, this.scale.height * 0.75);
 
         const zone = this.add.zone(0, 0, this.scale.width, this.camera.height / 2).setOrigin(0, 0);
         this.physics.add.existing(zone, true);
 
-
         this.physics.add.collider(this.player, zone);
         this.physics.world.on('worldbounds', (body) => {
-            if (body.gameObject instanceof Projectile) {
+            if (Disposables.some(type => body.gameObject instanceof type)) {
                 body.gameObject.disableBody(true, true);
             }
         });

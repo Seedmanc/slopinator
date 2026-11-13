@@ -51,10 +51,8 @@ export default class Player extends Phaser.GameObjects.Container {
         scene.physics.add.existing(this);
         this.body.setCollideWorldBounds(true);
 
-        scene.input.on('pointermove', (pointer) => {
-            this.barrel.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, pointer.x, pointer.y)))
-            this.batchPreview.setAngle(this.barrel.angle+90)
-        });
+        scene.input.on('pointermove', this.updateAim, this);
+        scene.input.on('pointerdown', this.updateAim, this);
         const cursorKeys = <Phaser.Types.Input.Keyboard.CursorKeys>scene.input.keyboard.addKeys({
             up: 'W', down: 'S', left: 'A', right: 'D'
         });
@@ -64,7 +62,7 @@ export default class Player extends Phaser.GameObjects.Container {
         this.cooldown = this.scene.add['rexCircularProgressCanvas']({
             x: 0, y: 0,
             radius: scene.textures.get(K.Player).get().width,
-            trackColor: 'red', barColor: 'lime' ,
+            trackColor: 'red', barColor: 'lime',
             anticlockwise: true, startAngle: 0,
             valuechangeCallback:null
         })
@@ -109,6 +107,11 @@ export default class Player extends Phaser.GameObjects.Container {
     setAmmo(pendingAmmo: number) {
         this.ammoIndex = pendingAmmo;
         this.updateBatch()
+    }
+
+    private updateAim(ptr) {
+        this.barrel.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, ptr.x, ptr.y)))
+        this.batchPreview.setAngle(this.barrel.angle+90)
     }
 
     private addStates() {

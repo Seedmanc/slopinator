@@ -37,6 +37,7 @@
     "strictTemplates": true
   },
     "include": [
-    "node_modules/phaser3-rex-plugins-types"
+        "**/*",
+        "node_modules/phaser3-rex-plugins-types"
     ]
 }

@@ -47,11 +47,11 @@ export const config: Phaser.Types.Core.GameConfig = {
             key: 'rexEightDirection',
             plugin: EightDirectionPlugin,
             start: true
-        } ,{
+        },{
             key: 'rexLineProgressCanvasPlugin',
             plugin: LineProgressCanvasPlugin,
             start: true
-        } ]
+        }]
     },
 };
 
