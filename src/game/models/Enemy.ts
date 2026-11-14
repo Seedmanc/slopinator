@@ -9,13 +9,13 @@ import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 export default class Enemy extends Phaser.GameObjects.Container {
     readonly MaxSat = 100;
     readonly Texture = K.Website;
-    saturation: number = 0;
-    alertness: number = 0;
     body : Phaser.Physics.Arcade.Body;
-    satView: LineProgressCanvas;
-    alertView: LineProgressCanvas;
-    private image: Phaser.GameObjects.Image;
-    affinity: Affinity;
+    private saturation: number = 0;
+    private alertness: number = 0;
+    private readonly satView: LineProgressCanvas;
+    private readonly alertView: LineProgressCanvas;
+    private readonly image: Phaser.GameObjects.Image;
+    private affinity: Affinity;
 
     constructor(public scene: Game, x: number, y: number, affinity:   Affinity) {
         super(scene, x, y)
@@ -27,7 +27,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.add(this.image)
         const color = ammoConfig[affinity ].color;
         this.satView = scene.add['rexLineProgressCanvas'](0, 0, 50, 10, color, 0, {
-            trackColor: '#000000', trackStrokeColor: color, valuechangeCallback:null
+            trackColor: '#000000', trackStrokeColor: color, valuechangeCallback:null //valuechangeCallback is useless but w/o it I get TS2345
         });
         this.alertView = scene.add['rexLineProgressCanvas'](0, 15, 50, 10, 'white', 0, {
             trackColor: '#000000', trackStrokeColor: 'white', valuechangeCallback:null
@@ -37,8 +37,8 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
         // @ts-ignore
         scene.add.existing(this); //Type argument cannot be inferred from usage
-        // @ts-ignore
         scene.physics.add.existing<typeof this>(this); //Expression statement is not assignment or call
+
         this.body.setCollideWorldBounds(true);
     }
 
@@ -51,14 +51,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage;
         this.alertView.setValue(this.alertness/this.MaxSat)
 
-        const reaction  = this.scene. likes.get()
-        reaction && reaction.enableBody(true, this.x, this.y, true, true);
+        const reaction  =   this.scene.likes.get()
+         reaction?.enableBody(true, this.x, this.y, true, true);
+         reaction?.launch()
 
-        reaction.launch(this.x,this.y, this.scene.player.x,this.scene.player.y,0)
-        const reaction2  = this.scene. likes.get()
-        reaction2 && reaction2.enableBody(true, this.x, this.y, true, true);
-        reaction2.launch(this.x,this.y, this.scene.player.x,this.scene.player.y,1)
+        const reaction2  =  this.scene.dislikes.get()
+         reaction2?.enableBody(true, this.x, this.y, true, true);
+         reaction2?.launch(this.scene.player,1)
     }
-
-
 }

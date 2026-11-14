@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import K, {Affinity} from "../const/ResourceKeys";
 import EightDirection from "phaser4-rex-plugins/plugins/behaviors/eightdirection/EightDirection";
 import {EventBus} from "../EventBus";
-import {Game, matrix} from "../scenes/Game";
+import {BaseSpeed, Game, matrix} from "../scenes/Game";
 import StateMachine from "../states/StateMachine";
 import IdleState from "../states/Idle";
 import SwitchingState from "../states/Switching";
@@ -23,7 +23,7 @@ export default class Player extends Phaser.GameObjects.Container {
     batchPreview: Phaser.GameObjects.Container;
     fireDelay = 400;
     stateMachine: StateMachine
-    defaultSpeed = 200;
+    defaultSpeed = 3*BaseSpeed;
     ammoIndex: Affinity = 1;
 
     get ammo(): { type: string, color: string } {
@@ -99,7 +99,7 @@ export default class Player extends Phaser.GameObjects.Container {
             let x = matrix.getX(1,1);
             let y = matrix.getY(1,1);
             bullet?.enableBody(true, x, y, true, true);
-            this.scene.physics.velocityFromAngle(this.barrel.angle, this.fireDelay, bullet?.body.velocity);
+            this.scene.physics.velocityFromAngle(this.barrel.angle, 4*BaseSpeed, bullet?.body.velocity);
             bullet?.setAngle(0);
         })
     }

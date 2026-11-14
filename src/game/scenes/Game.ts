@@ -9,6 +9,8 @@ import Dislike from "../models/Dislike";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
+export const BaseSpeed = 100;
+
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
@@ -53,7 +55,7 @@ export class Game extends Scene {
         this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
         this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
 
-        this.enemy = new Enemy(this, this.scale.width / 2, this.scale.height * 0.25, Affinity.Anime)
+        this.enemy = new Enemy(this, this.scale.width / 2, this.scale.height * 0.25 , Affinity.Anime)
         this.physics.add.overlap(this.enemy, this.projectiles, (enemy:Enemy, proj:Projectile) => {
             enemy.hit(proj);
             proj.disableBody(true, true);

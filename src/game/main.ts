@@ -9,7 +9,6 @@ import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plu
 import LineProgressCanvasPlugin from 'phaser4-rex-plugins/plugins/lineprogresscanvas-plugin.js';
 
 
-
 // Find out more information about the Game Config at:
 // https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 export const config: Phaser.Types.Core.GameConfig = {
@@ -32,7 +31,7 @@ export const config: Phaser.Types.Core.GameConfig = {
     physics: {
         default: 'arcade',
         arcade: {
-             debug: true
+              debug: true
         }
     },
     input: {
