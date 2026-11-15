@@ -5,6 +5,7 @@ import ammoConfig from '../const/ammo.json';
 import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
+import Reaction from "./Reaction";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     readonly MaxSat = 100;
@@ -51,12 +52,19 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage;
         this.alertView.setValue(this.alertness/this.MaxSat)
 
-        const reaction  =   this.scene.likes.get()
-         reaction?.enableBody(true, this.x, this.y, true, true);
-         reaction?.launch()
+        this.react(mismatch/(ammoConfig.length-1))
+    }
 
-        const reaction2  =  this.scene.dislikes.get()
-         reaction2?.enableBody(true, this.x, this.y, true, true);
-         reaction2?.launch(this.scene.player,1)
+    react(failProb: number) {console.info(failProb)
+        let reactions: Reaction[] = [];
+
+        if (Math.random() >= failProb)
+            reactions.push(this.scene.likes.get());
+        if (Math.random() <= failProb)
+            reactions.push(this.scene.dislikes.get());
+
+        reactions.filter(Boolean).forEach(r => {
+            r.launch(this, this.scene.player, 1)
+        })
     }
 }

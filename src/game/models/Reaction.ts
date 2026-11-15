@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import {BaseSpeed, Game} from "../scenes/Game";
+import Vector2Like = Phaser.Types.Math.Vector2Like;
 
 export default abstract class Reaction extends Phaser.GameObjects.Text {
      static readonly BaseDmg = 0.1;
@@ -20,19 +21,19 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
          this.setOrigin( 0.25,0.5);
          this.body.setOffset( 4.5,0)
      }
-
-     enableBody(_, x, y, ...args) {
-         this.body.setEnable(true)
-         this.setActive(true);
-         this.setVisible(true);
-         this.body.x = x;
-         this.body.y = y;
-         this.setShadow(0, 0, this.bgColor, 10, false, true);
-     }
-     disableBody(...args) {
+     disableBody() {
          this.setActive(false);
          this.setVisible(false);
          this.body.enable=false;
      }
     abstract launch(...args)
+
+    protected enableBody({x, y}: Vector2Like) {
+        this.body.setEnable(true)
+        this.setActive(true);
+        this.setVisible(true);
+        this.body.x = x;
+        this.body.y = y;
+        this.setShadow(0, 0, this.bgColor, 10, false, true);
+    }
 }

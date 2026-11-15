@@ -16,7 +16,7 @@ export default abstract class SwitchingState implements IState {
         plr.scene.tweens.add({
             targets: plr.cooldown,
             value: 1,
-            duration: 2000,
+            duration: 1000,
             onComplete: () => plr.stateMachine.setState('S.Idle')
         })
     }
