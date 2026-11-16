@@ -47,24 +47,41 @@ export default class Enemy extends Phaser.GameObjects.Container {
         let damage = this.MaxSat * Projectile.BaseDmg;
         let mismatch = Math.abs(this.affinity - proj.affinity);
         this.saturation += (ammoConfig.length-1 - mismatch) * damage;
+        this.saturation = Phaser.Math.Clamp(this.saturation, 0,this.MaxSat)
 
         this.satView.setValue(this.saturation/this.MaxSat)
         this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage;
+        this.alertness = Phaser.Math.Clamp(this.alertness, 0,this.MaxSat)
         this.alertView.setValue(this.alertness/this.MaxSat)
 
         this.react(mismatch/(ammoConfig.length-1))
     }
 
-    react(failProb: number) {console.info(failProb)
-        let reactions: Reaction[] = [];
+    react(failProb: number) {
+        let reactions: string[] = [];
+        const fractionalFill = (good: boolean, base: number) => {
+            const type = good ? 'likes' : 'dislikes';
+            const adjusted = base + (good ? -1 : 1) * this.alertness/100;
+            for (let i=0;i<Math.floor(adjusted);i++) {
+                reactions.push(type);
+            }
+            if (Math.random() <= adjusted - Math.floor(adjusted)) {
+                reactions.push(type);
+            }
+        }
 
-        if (Math.random() >= failProb)
-            reactions.push(this.scene.likes.get());
-        if (Math.random() <= failProb)
-            reactions.push(this.scene.dislikes.get());
+        if (Math.random() >= failProb) {
+            fractionalFill(true, 1.5)
+        }
 
-        reactions.filter(Boolean).forEach(r => {
-            r.launch(this, this.scene.player, 1)
+        if (Math.random() <= failProb) {
+            fractionalFill(false, 1)
+        }
+
+        reactions.forEach((r, i) => {
+            window.setTimeout(() => {
+                (<Reaction>this.scene[r].get())?.launch(this, this.scene.player, 1-i%2)
+            }, 200*i)
         })
     }
 }
