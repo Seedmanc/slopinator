@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import K, {Affinity} from "../const/ResourceKeys";
+import K from "../const/ResourceKeys";
 import EightDirection from "phaser4-rex-plugins/plugins/behaviors/eightdirection/EightDirection";
 import {EventBus} from "../EventBus";
 import {BaseSpeed, Game, matrix} from "../scenes/Game";
@@ -9,8 +9,8 @@ import SwitchingState from "../states/Switching";
 import EightDirectionPlugin from "phaser4-rex-plugins/plugins/eightdirection-plugin";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import CircularProgressCanvas = UIPlugin.CircularProgressCanvas;
-import ammoConfig from '../const/ammo.json';
 import Projectile from "./Projectile";
+import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
 
 export default class Player extends Phaser.GameObjects.Container {
     health: number;
@@ -24,10 +24,10 @@ export default class Player extends Phaser.GameObjects.Container {
     fireDelay = 400;
     stateMachine: StateMachine
     defaultSpeed = 3*BaseSpeed;
-    ammoIndex: Affinity = 1;
+    ammoIndex: TAffinity = Affinity.Anime;
 
     get ammo(): { type: string, color: string } {
-        return ammoConfig[this.ammoIndex];
+        return AFFINITIES[this.ammoIndex];
     }
 
     constructor(public scene: Game, x: number, y: number) {
@@ -104,7 +104,7 @@ export default class Player extends Phaser.GameObjects.Container {
         })
     }
 
-    setAmmo(pendingAmmo: number) {
+    setAmmo(pendingAmmo: TAffinity) {
         this.ammoIndex = pendingAmmo;
         this.updateBatch()
     }

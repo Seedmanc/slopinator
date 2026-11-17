@@ -46,7 +46,7 @@ export class Preloader extends Scene
         g.fillStyle(0x141926, 1); g.fillRoundedRect(10, 26, 8, 8, 2); g.fillRoundedRect(22, 26, 8, 8, 2);
         g.lineStyle(2, 0x3fd0ff, 0.8); g.strokeRoundedRect(4, 6, 32, 28, 6);
         g.generateTexture(K.Player, 40, 40);
-        // barrel
+        // gunbarrel
         g.clear(); g.fillStyle(0x9fb4d8, 1); g.fillRect(0, 2, 26, 6); g.fillStyle(0x3fd0ff, 1); g.fillRect(22, 1, 8, 8);
         g.generateTexture(K.Barrel, 30, 10);
         // projectile

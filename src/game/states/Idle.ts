@@ -1,6 +1,6 @@
 import {IState} from "./StateMachine";
 import Player from "../models/Player";
-import ammoConfig from '../const/ammo.json';
+import {AFFINITIES} from "../const/Affinity";
 
 export default abstract class IdleState implements IState {
     static onUpdate(this: Player) {
@@ -16,7 +16,7 @@ export default abstract class IdleState implements IState {
         plr.cooldown.setVisible(false);
         plr.scene.input.keyboard.on ('keydown', e => {
             let index = parseInt(e.key)-1;
-            if (!isNaN(index) && 0<= index && index <= ammoConfig.length-1 && index != plr.ammoIndex)
+            if (!isNaN(index) && 0<= index && index <= (AFFINITIES.length-1) && index != plr.ammoIndex)
                 plr.stateMachine.setState('S.Switching', index )
         });
     }

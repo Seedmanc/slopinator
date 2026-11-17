@@ -4,8 +4,8 @@ import Vector2Like = Phaser.Types.Math.Vector2Like;
 
 export default abstract class Reaction extends Phaser.GameObjects.Text {
      static readonly BaseDmg = 0.1;
-     static dislike = ['💢', '😡', '🚫', '👎'];
-     static like = ['💖','👍','👌','🎯'];
+     static dislike = ['💢', '😡', '🚫', '👎','🤢'];
+     static like = ['❤','👍','👌','🎯','💋'];
      abstract bgColor: string;
 
      body: Phaser.Physics.Arcade.Body;
@@ -37,6 +37,7 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
     }
 }
 
+
 export class Like extends Reaction {
     bgColor = 'lime'
 
@@ -48,6 +49,7 @@ export class Like extends Reaction {
         this.scene.physics.velocityFromAngle(Phaser.Math.Between(0, 180), this.speed, this.body.velocity)
     }
 }
+
 
 export class Dislike extends Reaction {
     static readonly BaseDmg = 0.1;
@@ -65,7 +67,7 @@ export class Dislike extends Reaction {
         const {angles,speed}  = this.getAirToGroundAngle(src, x,y, this.speed, this.body.gravity.y, this.scene.player.body.halfWidth)
         let angle = angles[high];
         const maxH = this.speed**2 * Math.sin(angle)**2/(2*this.gravity)
-        if (maxH > this.body.position.y)
+        if (maxH >= this.body.position.y)
             angle = angles[0]
         this.scene.physics.velocityFromAngle(Phaser.Math.RadToDeg(angle), speed, this.body.velocity);
     }
@@ -74,7 +76,7 @@ export class Dislike extends Reaction {
         const dx = tx - x; const dy = y - ty;
         if (Math.abs(dx) <= tol)
             return {angles:[Math.PI/2, Math.PI/2], speed:0};
-        speed = speed * Phaser.Math.Clamp((Math.abs(dx)-200)/200+0.5,0.66,1.4)
+        speed = speed * Phaser.Math.Clamp((Math.abs(dx)-200)/200+0.5,0.66,1.4) // smaller arc when tgt close, higher further away
         const v2 = speed ** 2; const v4 = speed ** 4;
         const x2 = dx * dx;
         let root = v4 - gravity * (gravity * x2 + 2 * dy * v2);

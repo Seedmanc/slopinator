@@ -3,8 +3,8 @@ import Phaser, {Scene} from 'phaser';
 import Player from "../models/Player";
 import Projectile from "../models/Projectile";
 import Enemy from "../models/Enemy";
-import {Affinity} from "../const/ResourceKeys";
 import {Dislike, Like} from "../models/Reaction";
+import {Affinity} from "../const/Affinity";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
