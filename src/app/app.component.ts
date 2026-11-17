@@ -25,10 +25,10 @@ export class AppComponent
     constructor()
     {
         // You can now safely set up your EventBus subscriptions here
-        EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
+        EventBus.on('scene:ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
         });
-        EventBus.on('batch-size-changed', (size) => {
+        EventBus.on('batch:changed', (size) => {
             this.batchSize = size;
         });
     }
@@ -74,6 +74,6 @@ export class AppComponent
     }
 
     onBatchChange() {
-        EventBus.emit('batch-size', this.batchSize);
+        EventBus.emit('batch:change', this.batchSize);
     }
 }

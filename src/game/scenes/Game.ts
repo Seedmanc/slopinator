@@ -4,8 +4,7 @@ import Player from "../models/Player";
 import Projectile from "../models/Projectile";
 import Enemy from "../models/Enemy";
 import {Affinity} from "../const/ResourceKeys";
-import Like from "../models/Like";
-import Dislike from "../models/Dislike";
+import {Dislike, Like} from "../models/Reaction";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
@@ -61,8 +60,8 @@ export class Game extends Scene {
             proj.disableBody(true, true);
         });
 
-        EventBus.emit('current-scene-ready', this);
-        EventBus.on('batch-size', size=>this.player.updateBatch(size));
+        EventBus.emit('scene:ready', this);
+        EventBus.on('batch:change', this.player.updateBatch, this.player);
     }
 
     update() {

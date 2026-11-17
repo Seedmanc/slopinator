@@ -26,9 +26,9 @@ export class MainMenu extends Scene
             align: 'center'
         }).setOrigin(0.5).setDepth(100);
 
-        EventBus.emit('current-scene-ready', this);
+        EventBus.emit('scene:ready', this);
     }
-    
+
     changeScene ()
     {
         if (this.logoTween)
@@ -52,7 +52,7 @@ export class MainMenu extends Scene
             {
                 this.logoTween.play();
             }
-        } 
+        }
         else
         {
             this.logoTween = this.tweens.add({

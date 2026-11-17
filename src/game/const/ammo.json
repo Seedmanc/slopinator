@@ -1,12 +1,12 @@
 [
     {
-        "type": "anime",
+        "type": "Anime",
         "color": "#ff0000"
     }, {
-        "type": "base",
+        "type": "Base",
         "color": "#ffff00"
     }, {
-        "type": "realism",
+        "type": "Realism",
         "color": "#00ff00"
     }
 ]

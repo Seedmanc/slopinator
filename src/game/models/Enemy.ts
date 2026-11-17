@@ -59,9 +59,9 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
     react(failProb: number) {
         let reactions: string[] = [];
-        const fractionalFill = (good: boolean, base: number) => {
+        const fractionalFill = (good: boolean, base: number = 1.25) => {
             const type = good ? 'likes' : 'dislikes';
-            const adjusted = base + (good ? -1 : 1) * this.alertness/100;
+            const adjusted = base + (good ? -1 : 1) * this.alertness/this.MaxSat;
             for (let i=0;i<Math.floor(adjusted);i++) {
                 reactions.push(type);
             }
@@ -70,18 +70,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
             }
         }
 
-        if (Math.random() >= failProb) {
-            fractionalFill(true, 1.5)
-        }
-
-        if (Math.random() <= failProb) {
-            fractionalFill(false, 1)
-        }
+        fractionalFill(Math.random() >= failProb)
 
         reactions.forEach((r, i) => {
-            window.setTimeout(() => {
+            this.scene.time.delayedCall(200 * i, () => {
                 (<Reaction>this.scene[r].get())?.launch(this, this.scene.player, 1-i%2)
-            }, 200*i)
+            })
         })
     }
 }

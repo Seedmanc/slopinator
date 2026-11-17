@@ -16,8 +16,7 @@ export class PhaserGame implements AfterViewInit {
 
     ngAfterViewInit () {
         this.game = StartGame(this.parentId);
-
-        EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
+        EventBus.on('scene:ready', (scene: Phaser.Scene) => {
             this.scene = scene;
 
             if (this.sceneCallback) {
