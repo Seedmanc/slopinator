@@ -18,7 +18,7 @@ type GameEvents = {
     "like:collected": { hpFull: boolean };
     "boss:phase": { phase: "ranged" | "vacuum" | "trainedStrike" };*/
     "batch:change": number;
-    "batch:changed": number;
+    "batch:updated": number;
     "scene:ready": Phaser.Scene;
     "player:fire": number|null;
     "enemy:hit": [enemy:TAffinity, proj:TAffinity];

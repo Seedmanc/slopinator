@@ -28,7 +28,7 @@ export class AppComponent
         EventBus.on('scene:ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
         });
-        EventBus.on('batch:changed', (size) => {
+        EventBus.on('batch:updated', (size) => {
             this.batchSize = size;
         });
     }

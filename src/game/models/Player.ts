@@ -88,7 +88,7 @@ export default class Player extends Phaser.GameObjects.Container {
             x: -5-blkSize*(w-1), y: -45
         });
 
-        EventBus.emit('batch:changed', this.batchSize);
+        EventBus.emit('batch:updated', this.batchSize);
     }
 
     fireBullets() {

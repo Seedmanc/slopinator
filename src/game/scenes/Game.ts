@@ -71,6 +71,7 @@ export class Game extends Scene {
         this.player.stateMachine.update();
     }
     changeScene () {
+        EventBus.off('batch:change')
         this.scene.start('GameOver');
     }
 }
