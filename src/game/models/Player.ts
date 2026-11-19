@@ -102,6 +102,7 @@ export default class Player extends Phaser.GameObjects.Container {
             this.scene.physics.velocityFromAngle(this.barrel.angle, 4*BaseSpeed, bullet?.body.velocity);
             bullet?.setAngle(0);
         })
+        EventBus.emit('player:fire', this.batchSize);
     }
 
     setAmmo(pendingAmmo: TAffinity) {

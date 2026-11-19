@@ -5,6 +5,7 @@ import Projectile from "../models/Projectile";
 import Enemy from "../models/Enemy";
 import {Dislike, Like} from "../models/Reaction";
 import {Affinity} from "../const/Affinity";
+import {StatsManager} from "../StatsManager";
 
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
@@ -36,6 +37,7 @@ export class Game extends Scene {
     }
 
     create() {
+        StatsManager.start();
         Disposables.forEach(T => this.group<typeof T>(T));
 
         this.camera = this.cameras.main;
@@ -58,6 +60,7 @@ export class Game extends Scene {
         this.physics.add.overlap(this.enemy, this.projectiles, (enemy:Enemy, proj:Projectile) => {
             enemy.hit(proj);
             proj.disableBody(true, true);
+            EventBus.emit('enemy:hit', [enemy.affinity, proj.affinity]);
         });
 
         EventBus.emit('scene:ready', this);
@@ -66,5 +69,8 @@ export class Game extends Scene {
 
     update() {
         this.player.stateMachine.update();
+    }
+    changeScene () {
+        this.scene.start('GameOver');
     }
 }

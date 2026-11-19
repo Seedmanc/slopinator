@@ -16,7 +16,7 @@ export class Boot extends Scene
     }
 
     create ()
-    {
+    {   Phaser.Math.RND.init([])
         this.scene.start('Preloader');
     }
 }

@@ -11,12 +11,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
     readonly MaxSat = 100;
     readonly Texture = K.Website;
     body : Phaser.Physics.Arcade.Body;
+    affinity: TAffinity;
     private saturation: number = 0;
     private alertness: number = 0;
     private readonly satView: LineProgressCanvas;
     private readonly alertView: LineProgressCanvas;
     private readonly image: Phaser.GameObjects.Image;
-    private affinity: TAffinity;
 
     constructor(public scene: Game, x: number, y: number, affinity: TAffinity) {
         super(scene, x, y)
@@ -66,12 +66,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
             for (let i=0;i<Math.floor(adjusted);i++) {
                 reactions.push(type);
             }
-            if (Math.random() <= adjusted - Math.floor(adjusted)) {
+            if (Phaser.Math.RND.frac() <= adjusted - Math.floor(adjusted)) {
                 reactions.push(type);
             }
         }
 
-        fractionalFill(Math.random() >= failProb)
+        fractionalFill(Phaser.Math.RND.frac() >= failProb)
 
         reactions.forEach((r, i) => {
             this.scene.time.delayedCall(200 * i, () => {

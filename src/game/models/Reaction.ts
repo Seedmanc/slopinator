@@ -46,7 +46,7 @@ export class Like extends Reaction {
     }
     launch(pos: Vector2Like) {
         this.enableBody(pos)
-        this.scene.physics.velocityFromAngle(Phaser.Math.Between(0, 180), this.speed, this.body.velocity)
+        this.scene.physics.velocityFromAngle(Phaser.Math.RND.between(0, 180), this.speed, this.body.velocity)
     }
 }
 

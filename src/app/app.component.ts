@@ -35,10 +35,9 @@ export class AppComponent
 
     public changeScene()
     {
-        const scene = this.phaserRef().scene as MainMenu;
-        if (scene)
-        {
-            scene.changeScene();
+        const scene = this.phaserRef().scene;// as MainMenu;
+        if (scene) {
+            scene['changeScene']();
         }
     }
 

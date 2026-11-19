@@ -1,5 +1,6 @@
 import { Events } from 'phaser';
 import EventEmitter = Phaser.Events.EventEmitter;
+import {TAffinity} from "./const/Affinity";
 
 interface EvtEmitter extends EventEmitter {
     on<K extends keyof GameEvents>(event: K, fn: (p?: GameEvents[K]) => void, context?: any): this;
@@ -19,5 +20,7 @@ type GameEvents = {
     "batch:change": number;
     "batch:changed": number;
     "scene:ready": Phaser.Scene;
+    "player:fire": number|null;
+    "enemy:hit": [enemy:TAffinity, proj:TAffinity];
     // ...
 };
