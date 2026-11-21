@@ -1,9 +1,9 @@
 import {EventBus} from "./EventBus";
 
 export class StatsManager {
-    static shotsFired = 0;
-    static shotsLanded = 0;
-    static score = 0;
+    static shotsFired: number;
+    static shotsLanded: number;
+    static score: number;
 
     static start() {
         StatsManager.reset();

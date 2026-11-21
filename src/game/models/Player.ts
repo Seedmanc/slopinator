@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import K from "../const/ResourceKeys";
 import EightDirection from "phaser4-rex-plugins/plugins/behaviors/eightdirection/EightDirection";
 import {EventBus} from "../EventBus";
-import {BaseSpeed, Game, matrix} from "../scenes/Game";
+import { Game, matrix} from "../scenes/Game";
 import StateMachine from "../states/StateMachine";
 import IdleState from "../states/Idle";
 import SwitchingState from "../states/Switching";
@@ -13,46 +13,46 @@ import Projectile from "./Projectile";
 import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 import {Dislike, Like} from "./Reaction";
+import {Balance} from "../const/Balance";
 
 export default class Player extends Phaser.GameObjects.Container {
-    health: number;
-    cooldown: CircularProgressCanvas;
     batchSize = 1;
     body : Phaser.Physics.Arcade.Body;
-    eightDirection: EightDirection;
-    barrel: Phaser.GameObjects.Image;
-    #sprite: Phaser.GameObjects.Image;
-    batchPreview: Phaser.GameObjects.Container;
-    fireDelay = 400;
     stateMachine: StateMachine
-    defaultSpeed = 3*BaseSpeed;
-    ammoIndex: TAffinity = Affinity.Realism;
     hp = 1;
-    hpView: LineProgressCanvas
 
-    get ammo(): { type: string, color: string } {
-        return AFFINITIES[this.ammoIndex];
+    readonly #barrel: Phaser.GameObjects.Image;
+    readonly #sprite: Phaser.GameObjects.Image;
+    readonly #batchPreview: Phaser.GameObjects.Container;
+    readonly #hpView: LineProgressCanvas
+    _eightDirection: EightDirection;
+    _fireDelayMs = 1000/Balance.FireRate;
+    _defaultSpeed = 400*Balance.Speed;
+    _ammoIndex: TAffinity = Affinity.Realism;
+    _cooldown: CircularProgressCanvas;
+    _nextFireAt=0;
+    get _ammo(): { type: string, color: string } {
+        return AFFINITIES[this._ammoIndex];
     }
 
     constructor(public scene: Game, x: number, y: number) {
         super(scene, x, y)
-        this.health = 100;
         this.width = scene.textures.get(K.Player).get().width;
         this.height = scene.textures.get(K.Player).get().height;
 
-        this.barrel = scene.add.image(0, 0,  K.Barrel).setOrigin(0, 0.5).setAngle(-90);
+        this.#barrel = scene.add.image(0, 0,  K.Barrel).setOrigin(0, 0.5).setAngle(-90);
         this.#sprite = scene.add.image(0, 0,  K.Player)
         this.add(this.#sprite)
-        this.add(this.barrel)
+        this.add(this.#barrel)
 
-        this.batchPreview = scene.add.container(0, 0);
-        this.add(this.batchPreview);
+        this.#batchPreview = scene.add.container(0, 0);
+        this.add(this.#batchPreview);
         this.updateBatch()
 
-        this.hpView = scene.add['rexLineProgressCanvas'](0, 20, this.width, 10, 'blue', this.hp, {
+        this.#hpView = scene.add['rexLineProgressCanvas'](0, 20, this.width, 9, 'blue', this.hp, {
             trackColor: '#000000', trackStrokeColor: 'cyan', valuechangeCallback:null //valuechangeCallback is useless but w/o it I get TS2345
         });
-        this.add(this.hpView)
+        this.add(this.#hpView)
 
         // @ts-ignore
         scene.add.existing(this);
@@ -65,29 +65,29 @@ export default class Player extends Phaser.GameObjects.Container {
         const cursorKeys = <Phaser.Types.Input.Keyboard.CursorKeys>scene.input.keyboard.addKeys({
             up: 'W', down: 'S', left: 'A', right: 'D'
         });
-        this.eightDirection = (<EightDirectionPlugin>scene.plugins.get('rexEightDirection'))
-            .add(this, { cursorKeys, speed: this.defaultSpeed});
+        this._eightDirection = (<EightDirectionPlugin>scene.plugins.get('rexEightDirection'))
+            .add(this, { cursorKeys, speed: this._defaultSpeed});
 
-        this.cooldown = this.scene.add['rexCircularProgressCanvas']({
+        this._cooldown = this.scene.add['rexCircularProgressCanvas']({
             x: 0, y: 0,
             radius: scene.textures.get(K.Player).get().width,
             trackColor: 'red', barColor: 'lime',
             anticlockwise: true, startAngle: 0,
             valuechangeCallback:null
         })
-        this.add(this.cooldown);
+        this.add(this._cooldown);
 
         this.addStates();
     }
 
     updateBatch(size = this.batchSize) {
         this.batchSize = Phaser.Math.Clamp(size,1,4);
-        this.batchPreview.removeAll();
+        this.#batchPreview.removeAll();
         const rectangles = [] ;
         for (let i = 0; i < this.batchSize; i++) {
-            let rect = this.scene.add.rectangle(0, 0, 10, 10, Phaser.Display.Color.ValueToColor(this.ammo.color).color,0.7);
+            let rect = this.scene.add.rectangle(0, 0, 10, 10, Phaser.Display.Color.ValueToColor(this._ammo.color).color,0.7);
             rectangles.push(rect);
-            this.batchPreview.add(rect);
+            this.#batchPreview.add(rect);
         }
         const blkSize = rectangles[0].width;
         const w = this.batchSize - Math.floor(this.batchSize / 4) * 2 //1 2 3 4 => 1 2 3 2
@@ -101,27 +101,28 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     fireBullets() {
-        this.batchPreview.each(el => {
-            const bullet:Projectile = this.scene.projectiles.get()
-            bullet.setAffinity(this.ammoIndex);
+        this.#batchPreview.each(el => {
+            const bullet: Projectile = this.scene.groups.get(Projectile).get()
+            if (!bullet)
+                return;
+            bullet.setAffinity(this._ammoIndex);
             el.getWorldTransformMatrix(matrix);
-            let x = matrix.getX(1,1);
-            let y = matrix.getY(1,1);
-            bullet?.enableBody(true, x, y, true, true);
-            this.scene.physics.velocityFromAngle(this.barrel.angle, 4*BaseSpeed, bullet?.body.velocity);
-            bullet?.setAngle(0);
+            let x = matrix.getX(1,1); let y = matrix.getY(1,1);
+            bullet.enableBody(true, x, y, true, true);
+            this.scene.physics.velocityFromAngle(this.#barrel.angle, bullet.speed, bullet.body.velocity);
+            bullet.setAngle(0);
         })
         EventBus.emit('player:fire', this.batchSize);
     }
 
-    setAmmo(pendingAmmo: TAffinity) {
-        this.ammoIndex = pendingAmmo;
+    _setAmmo(pendingAmmo: TAffinity) {
+        this._ammoIndex = pendingAmmo;
         this.updateBatch()
     }
 
     disliked(reaction: Dislike) {
         this.hp -= reaction.BaseDmg;
-        this.hpView.setValue(this.hp);
+        this.#hpView.setValue(this.hp);
         this.body.acceleration.copy(reaction.body.velocity.scale(15))
         this.scene.time.delayedCall(200,() =>this.body.setAcceleration(0))
     }
@@ -129,14 +130,14 @@ export default class Player extends Phaser.GameObjects.Container {
     liked(reaction:Like) {
         if (this.hp<1) {
             this.hp += reaction.BaseDmg;
-            this.hpView.setValue(this.hp);
+            this.#hpView.setValue(this.hp);
         } else
             EventBus.emit('score:up', reaction.BaseDmg)
     }
 
     private updateAim(ptr) {
-        this.barrel.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, ptr.x, ptr.y)))
-        this.batchPreview.setAngle(this.barrel.angle+90)
+        this.#barrel.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, ptr.x, ptr.y)))
+        this.#batchPreview.setAngle(this.#barrel.angle+90)
     }
 
     private addStates() {

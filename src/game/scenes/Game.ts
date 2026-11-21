@@ -6,27 +6,20 @@ import Enemy from "../models/Enemy";
 import {Dislike, Like} from "../models/Reaction";
 import {Affinity} from "../const/Affinity";
 import {StatsManager} from "../StatsManager";
-
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
-export const BaseSpeed = 100;
 
 export class Game extends Scene {
-    camera: Phaser.Cameras.Scene2D.Camera;
-    background: Phaser.GameObjects.Image;
     player: Player;
-    projectiles: Phaser.Physics.Arcade.Group;
-    likes: Phaser.Physics.Arcade.Group;
-    dislikes: Phaser.Physics.Arcade.Group;
-    nextFireAt=0;
     enemy: Enemy;
+    readonly groups = new Map<typeof Disposables[number], Phaser.Physics.Arcade.Group>();
 
     constructor() {
         super('Game');
     }
 
     private group<T>(type) {
-        this[type.name.toLowerCase()+'s'] = this.physics.add.group({
+        const group = this.physics.add.group({
             allowGravity:  true,
             classType: type,
             maxSize: 16,
@@ -34,24 +27,24 @@ export class Game extends Scene {
             // @ts-ignore
             createCallback: (bullet: T) => bullet.body.onWorldBounds = true //TS2322
         });
+        this.groups.set(type, group);
     }
 
     create() {
         StatsManager.start();
         Disposables.forEach(T => this.group<typeof T>(T));
 
-        this.camera = this.cameras.main;
         this.player = new Player(this, this.scale.width / 2, this.scale.height * 0.75);
 
-        const zone = this.add.zone(0, 0, this.scale.width, this.camera.height / 2).setOrigin(0, 0);
+        const zone = this.add.zone(0, 0, this.scale.width, this.scale.height / 2).setOrigin(0, 0);
         this.physics.add.existing(zone, true);
 
         this.physics.add.collider(this.player, zone);
-        this.physics.add.collider(this.player, this.dislikes, (plr:Player, reaction:Dislike) => {
+        this.physics.add.collider(this.player, this.groups.get(Dislike), (plr:Player, reaction:Dislike) => {
             plr.disliked(reaction)
             reaction.disableBody();
         });
-        this.physics.add.overlap(this.player, this.likes, (plr:Player, reaction:Like) => {
+        this.physics.add.overlap(this.player, this.groups.get(Like), (plr:Player, reaction:Like) => {
             reaction.disableBody();
             plr.liked(reaction)
         });
@@ -65,7 +58,7 @@ export class Game extends Scene {
         this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
 
         this.enemy = new Enemy(this, this.scale.width / 2, this.scale.height * 0.25 , Affinity.Anime)
-        this.physics.add.overlap(this.enemy, this.projectiles, (enemy:Enemy, proj:Projectile) => {
+        this.physics.add.overlap(this.enemy, this.groups.get(Projectile), (enemy:Enemy, proj:Projectile) => {
             enemy.hit(proj);
             proj.disableBody(true, true);
             EventBus.emit('enemy:hit', [enemy.affinity, proj.affinity]);

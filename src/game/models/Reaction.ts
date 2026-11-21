@@ -1,15 +1,15 @@
 import Phaser from "phaser";
-import {BaseSpeed, Game} from "../scenes/Game";
+import {Game} from "../scenes/Game";
 import Vector2Like = Phaser.Types.Math.Vector2Like;
+import {Balance} from "../const/Balance";
 
 export default abstract class Reaction extends Phaser.GameObjects.Text {
-     readonly BaseDmg = 0.1;
-     static dislike = ['💢', '😡', '🚫', '👎','🤢'];
-     static like = ['❤','👍','👌','🎯','💋'];
-     abstract bgColor: string;
-
      body: Phaser.Physics.Arcade.Body;
-     speed = 4*BaseSpeed;
+     private static readonly dislike = ['💢', '😡', '🚫', '👎','🤢'];
+     private static readonly like = ['❤','👍','👌','🎯','💋'];
+     protected abstract readonly bgColor: string;
+     protected speed = 400*Balance.Speed;
+     readonly BaseDmg = Balance.Damage;
 
      protected constructor(public scene: Game, x: number, y: number, type: 'like'|'dislike') {
          super(scene, x, y, Phaser.Math.RND.pick(Reaction[type]) , {})
@@ -17,28 +17,28 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
          scene.physics.add.existing(this);
 
          this.body.setCircle(7)
-         this.setScale(1.5 ,1.5 )
-         this.setOrigin( 0.25,0.5);
+         this.setScale(1.5 ,1.5)
+         this.setOrigin(0.25,0.5);
      }
      disableBody() {
          this.setActive(false);
          this.setVisible(false);
          this.body.enable=false;
      }
-    abstract launch(...args)
+     abstract launch(...args)
 
-    protected enableBody({x, y}: Vector2Like) {
+     protected enableBody({x, y}: Vector2Like) {
         this.body.reset(x, y);
         this.body.setEnable(true)
         this.setActive(true);
         this.setVisible(true);
         this.setShadow(0, 0, this.bgColor, 10, false, true);
-    }
+     }
 }
 
 
 export class Like extends Reaction {
-    bgColor = 'lime'
+    protected readonly bgColor = 'lime'
 
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'like')
@@ -53,10 +53,9 @@ export class Like extends Reaction {
 
 
 export class Dislike extends Reaction {
-    static readonly BaseDmg = 0.1;
-    readonly gravity = 10*BaseSpeed;
-    bgColor = 'magenta'
-    speed = 3.5*BaseSpeed;
+    private readonly gravity = 1000*Balance.Speed;
+    protected readonly bgColor = 'magenta'
+    protected speed = 350*Balance.Speed;
 
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'dislike')

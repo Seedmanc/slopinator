@@ -3,26 +3,25 @@ import Player from "../models/Player";
 import {AFFINITIES, TAffinity} from "../const/Affinity";
 
 export default abstract class SwitchingState implements IState {
-
     static onUpdate(this: Player) {}
     static onEnter(plr: Player, nextAmmo: TAffinity) {
-        plr.cooldown.setVisible(true)
-        plr.cooldown.setTrackColor(plr.ammo.color)
-        plr.cooldown.setBarColor(AFFINITIES[nextAmmo]?.color)
-        plr.cooldown.setValue(0);
-        plr.eightDirection.setSpeed(plr.defaultSpeed/1.5) // HDD stutter replacement as movement is owned by rex plugin
+        plr._cooldown.setVisible(true)
+        plr._cooldown.setTrackColor(plr._ammo.color)
+        plr._cooldown.setBarColor(AFFINITIES[nextAmmo]?.color)
+        plr._cooldown.setValue(0);
+        plr._eightDirection.setSpeed(plr._defaultSpeed/1.5) // HDD stutter replacement as movement is owned by rex plugin
         plr.scene.tweens.add({
-            targets: plr.cooldown,
+            targets: plr._cooldown,
             value: 1,
             duration: 1000,
             onComplete: () => {
                 plr.stateMachine.setState('S.Idle')
-                plr.setAmmo(nextAmmo)
+                plr._setAmmo(nextAmmo)
             }
         })
     }
     static onExit(this: Player) {
-        this.cooldown.setVisible(false)
+        this._cooldown.setVisible(false)
     }
 
 }

@@ -4,23 +4,22 @@ import {Game} from "../scenes/Game";
 import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
-import Reaction from "./Reaction";
+import Reaction, {Dislike, Like} from "./Reaction";
 import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
 
 export default class Enemy extends Phaser.GameObjects.Container {
-    readonly MaxSat = 100;
-    readonly Texture = K.Website;
     body : Phaser.Physics.Arcade.Body;
     affinity: TAffinity;
+
     private saturation: number = 0;
     private alertness: number = 0;
     private readonly satView: LineProgressCanvas;
     private readonly alertView: LineProgressCanvas;
     private readonly image: Phaser.GameObjects.Image;
+    private readonly Texture = K.Website;
 
     constructor(public scene: Game, x: number, y: number, affinity: TAffinity) {
         super(scene, x, y)
-        this.saturation = 0;
         this.affinity = affinity;
         this.width = scene.textures.get(this.Texture).get().width;
         this.height = scene.textures.get(this.Texture).get().height;
@@ -44,28 +43,27 @@ export default class Enemy extends Phaser.GameObjects.Container {
     }
 
     hit(proj: Projectile) {
-        let damage = this.MaxSat * Projectile.BaseDmg;
-        let mismatch = Math.abs(this.affinity - proj.affinity);
+        const damage = Projectile.BaseDmg;
+        const mismatch = Math.abs(this.affinity - proj.affinity); //0 to 2
         const maxAmmo = AFFINITIES.length-1
-        this.saturation += (maxAmmo - mismatch) * damage;
-        this.saturation = Phaser.Math.Clamp(this.saturation, 0,this.MaxSat)
+        this.saturation += (maxAmmo - mismatch) * damage;   //0 to 0.2
+        this.saturation = Phaser.Math.Clamp(this.saturation, 0,1)
 
-        this.satView.setValue(this.saturation/this.MaxSat)
-        this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage;
-        this.alertness = Phaser.Math.Clamp(this.alertness, 0,this.MaxSat)
-        this.alertView.setValue(this.alertness/this.MaxSat)
+        this.satView.setValue(this.saturation)
+        this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage; // 0 to 0.18
+        this.alertness = Phaser.Math.Clamp(this.alertness, 0,1)
+        this.alertView.setValue(this.alertness)
 
         this.react(mismatch/maxAmmo)
     }
 
-    react(failProb: number) {
-        let reactions: string[] = [];
+    private react(failProb: number) {
+        let reactions = [];
         const fractionalFill = (good: boolean, base: number = 1.25) => {
-            const type = good ? 'likes' : 'dislikes';
-            const meh = 0.5 + Math.abs(failProb-0.5) // 1 to 0.5 to 1
-            let  adjusted = (base + (good ? -1 : 1) * this.alertView.getValue()) * meh; // is it ok to use UIcomponent to avoid this.alertness/this.maxSat again?
+            const type = good ? Like : Dislike;
+            let  adjusted = (base + (good ? -1 : 1) * this.alertView.getValue()); // is it ok to use UIcomponent to avoid this.alertness/this.maxSat again?
             if (failProb == 0.5 || this.affinity == Affinity.Base) {
-                adjusted*=0.75
+                adjusted*=0.7
             }
             for (let i=0;i<Math.floor(adjusted);i++) {
                 reactions.push(type);
@@ -79,7 +77,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
         reactions.forEach((r, i) => {
             this.scene.time.delayedCall(200 * i, () => {
-                (<Reaction>this.scene[r].get())?.launch(this, this.scene.player, 1 - i%2)
+                (<Reaction>this.scene.groups.get(r).get())?.launch(this, this.scene.player, 1 - i%2)
             })
         })
     }
