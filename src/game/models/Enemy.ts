@@ -5,7 +5,7 @@ import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 import Reaction from "./Reaction";
-import {AFFINITIES, TAffinity} from "../const/Affinity";
+import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     readonly MaxSat = 100;
@@ -62,7 +62,11 @@ export default class Enemy extends Phaser.GameObjects.Container {
         let reactions: string[] = [];
         const fractionalFill = (good: boolean, base: number = 1.25) => {
             const type = good ? 'likes' : 'dislikes';
-            const adjusted = base + (good ? -1 : 1) * this.alertView.getValue(); // is it ok to use UIcomponent to avoid this.alertness/this.maxSat again?
+            const meh = 0.5 + Math.abs(failProb-0.5) // 1 to 0.5 to 1
+            let  adjusted = (base + (good ? -1 : 1) * this.alertView.getValue()) * meh; // is it ok to use UIcomponent to avoid this.alertness/this.maxSat again?
+            if (failProb == 0.5 || this.affinity == Affinity.Base) {
+                adjusted*=0.75
+            }
             for (let i=0;i<Math.floor(adjusted);i++) {
                 reactions.push(type);
             }

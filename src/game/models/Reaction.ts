@@ -3,7 +3,7 @@ import {BaseSpeed, Game} from "../scenes/Game";
 import Vector2Like = Phaser.Types.Math.Vector2Like;
 
 export default abstract class Reaction extends Phaser.GameObjects.Text {
-     static readonly BaseDmg = 0.1;
+     readonly BaseDmg = 0.1;
      static dislike = ['💢', '😡', '🚫', '👎','🤢'];
      static like = ['❤','👍','👌','🎯','💋'];
      abstract bgColor: string;
@@ -19,7 +19,6 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
          this.body.setCircle(7)
          this.setScale(1.5 ,1.5 )
          this.setOrigin( 0.25,0.5);
-         this.body.setOffset( 4.5,0)
      }
      disableBody() {
          this.setActive(false);
@@ -43,10 +42,12 @@ export class Like extends Reaction {
 
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'like')
+        this.body.setCircle(this.body.radius+1)
+        this.body.setOffset(2,-1)
     }
     launch(pos: Vector2Like) {
         this.enableBody(pos)
-        this.scene.physics.velocityFromAngle(Phaser.Math.RND.between(0, 180), this.speed, this.body.velocity)
+        this.scene.physics.velocityFromAngle( Phaser.Math.RND.between(30, 150), this.speed, this.body.velocity) //arc 120 to bottom
     }
 }
 
@@ -59,6 +60,8 @@ export class Dislike extends Reaction {
 
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'dislike')
+        this.body.setCircle(this.body.radius-1)
+        this.body.setOffset(4,0)
     }
 
     launch(src: Vector2Like, {x, y}: Vector2Like, high = 0) {

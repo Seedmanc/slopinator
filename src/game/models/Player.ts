@@ -11,6 +11,8 @@ import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import CircularProgressCanvas = UIPlugin.CircularProgressCanvas;
 import Projectile from "./Projectile";
 import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
+import LineProgressCanvas = UIPlugin.LineProgressCanvas;
+import {Dislike, Like} from "./Reaction";
 
 export default class Player extends Phaser.GameObjects.Container {
     health: number;
@@ -24,7 +26,9 @@ export default class Player extends Phaser.GameObjects.Container {
     fireDelay = 400;
     stateMachine: StateMachine
     defaultSpeed = 3*BaseSpeed;
-    ammoIndex: TAffinity = Affinity.Anime;
+    ammoIndex: TAffinity = Affinity.Realism;
+    hp = 1;
+    hpView: LineProgressCanvas
 
     get ammo(): { type: string, color: string } {
         return AFFINITIES[this.ammoIndex];
@@ -44,6 +48,11 @@ export default class Player extends Phaser.GameObjects.Container {
         this.batchPreview = scene.add.container(0, 0);
         this.add(this.batchPreview);
         this.updateBatch()
+
+        this.hpView = scene.add['rexLineProgressCanvas'](0, 20, this.width, 10, 'blue', this.hp, {
+            trackColor: '#000000', trackStrokeColor: 'cyan', valuechangeCallback:null //valuechangeCallback is useless but w/o it I get TS2345
+        });
+        this.add(this.hpView)
 
         // @ts-ignore
         scene.add.existing(this);
@@ -108,6 +117,21 @@ export default class Player extends Phaser.GameObjects.Container {
     setAmmo(pendingAmmo: TAffinity) {
         this.ammoIndex = pendingAmmo;
         this.updateBatch()
+    }
+
+    disliked(reaction: Dislike) {
+        this.hp -= reaction.BaseDmg;
+        this.hpView.setValue(this.hp);
+        this.body.acceleration.copy(reaction.body.velocity.scale(15))
+        this.scene.time.delayedCall(200,() =>this.body.setAcceleration(0))
+    }
+
+    liked(reaction:Like) {
+        if (this.hp<1) {
+            this.hp += reaction.BaseDmg;
+            this.hpView.setValue(this.hp);
+        } else
+            EventBus.emit('score:up', reaction.BaseDmg)
     }
 
     private updateAim(ptr) {

@@ -32,7 +32,7 @@ export class Game extends Scene {
             maxSize: 16,
             collideWorldBounds: true,
             // @ts-ignore
-            createCallback: (bullet: T) => bullet.body.onWorldBounds = true //ridiculous typescript crap
+            createCallback: (bullet: T) => bullet.body.onWorldBounds = true //TS2322
         });
     }
 
@@ -47,6 +47,14 @@ export class Game extends Scene {
         this.physics.add.existing(zone, true);
 
         this.physics.add.collider(this.player, zone);
+        this.physics.add.collider(this.player, this.dislikes, (plr:Player, reaction:Dislike) => {
+            plr.disliked(reaction)
+            reaction.disableBody();
+        });
+        this.physics.add.overlap(this.player, this.likes, (plr:Player, reaction:Like) => {
+            reaction.disableBody();
+            plr.liked(reaction)
+        });
         this.physics.world.on('worldbounds', (body) => {
             if (Disposables.some(type => body.gameObject instanceof type)) {
                 body.gameObject.disableBody(true, true);

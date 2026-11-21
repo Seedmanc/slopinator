@@ -17,6 +17,7 @@ type GameEvents = {
     "player:hit": { damage: number; source: "dislike" | "insult" | "pencil" };
     "like:collected": { hpFull: boolean };
     "boss:phase": { phase: "ranged" | "vacuum" | "trainedStrike" };*/
+    "score:up": number;
     "batch:change": number;
     "batch:updated": number;
     "scene:ready": Phaser.Scene;
