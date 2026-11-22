@@ -124,7 +124,11 @@ export default class Player extends Phaser.GameObjects.Container {
         this.hp -= reaction.BaseDmg;
         this.#hpView.setValue(this.hp);
         this.body.acceleration.copy(reaction.body.velocity.scale(15))
-        this.scene.time.delayedCall(200,() =>this.body.setAcceleration(0))
+        this.scene.time.delayedCall(200,() =>{
+            this.body.setAcceleration(0)
+            if (this.hp<=0)
+                this.scene.changeScene('GameOver', {lose:true})
+        })
     }
 
     liked(reaction:Like) {
@@ -136,7 +140,11 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     private updateAim(ptr) {
-        this.#barrel.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, ptr.x, ptr.y)))
+        let targetAngle = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(this.x, this.y, ptr.x, ptr.y));
+        if (targetAngle > 0) {
+            targetAngle = targetAngle > 90 ? -180 : 0;
+        }
+        this.#barrel.setAngle(targetAngle);
         this.#batchPreview.setAngle(this.#barrel.angle+90)
     }
 

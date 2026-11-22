@@ -53,8 +53,10 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage; // 0 to 0.18
         this.alertness = Phaser.Math.Clamp(this.alertness, 0,1)
         this.alertView.setValue(this.alertness)
-
-        this.react(mismatch/maxAmmo)
+        if (this.saturation >= 1)
+            this.scene.changeScene('GameOver', {lose:false})
+        else
+            this.react(mismatch/maxAmmo)
     }
 
     private react(failProb: number) {

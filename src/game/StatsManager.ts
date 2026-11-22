@@ -1,4 +1,5 @@
 import {EventBus} from "./EventBus";
+import Phaser from "phaser";
 
 export class StatsManager {
     static shotsFired: number;
@@ -19,7 +20,7 @@ export class StatsManager {
     }
 
     static get accuracy(): number {
-        return StatsManager.shotsFired && StatsManager.shotsLanded/StatsManager.shotsFired;
+        return Phaser.Math.RoundTo(StatsManager.shotsFired && StatsManager.shotsLanded/StatsManager.shotsFired,-2);
     }
 
     static reset() {

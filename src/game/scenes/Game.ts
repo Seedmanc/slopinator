@@ -71,8 +71,8 @@ export class Game extends Scene {
     update() {
         this.player.stateMachine.update();
     }
-    changeScene () {
+    changeScene (which: string = 'GameOver', data?) {
         EventBus.off('batch:change')
-        this.scene.start('GameOver');
+        this.scene.start(which, data);
     }
 }
