@@ -26,7 +26,7 @@
       "ES2022",
       "DOM"
     ],
-      "moduleResolution": "node",
+      "moduleResolution": "Bundler",
       "allowSyntheticDefaultImports": true,
       "types": ["phaser"]
   },
@@ -38,6 +38,7 @@
   },
     "include": [
         "**/*",
-        "node_modules/phaser3-rex-plugins-types"
+        "node_modules/phaser3-rex-plugins-types/*",
+        "src/game/phaser-augment.d.ts",
     ]
 }

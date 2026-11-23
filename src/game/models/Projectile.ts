@@ -14,6 +14,7 @@ export default class Projectile extends Phaser.Physics.Arcade.Image {
      }
      setAffinity(value: TAffinity) {
          this.affinity = value;
+         this.body.setCollideWorldBounds(true, null, null, true)
          this.setTint(Phaser.Display.Color.ValueToColor(AFFINITIES[value].color).color);
      }
 }

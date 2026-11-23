@@ -7,6 +7,7 @@ import {Dislike, Like} from "../models/Reaction";
 import {AFFINITIES} from "../const/Affinity";
 import {StatsManager} from "../StatsManager";
 import Group = Phaser.Physics.Arcade.Group;
+import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
 export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
 const Disposables = [Projectile, Dislike, Like];
 
@@ -19,21 +20,19 @@ export class Game extends Scene {
         super('Game');
     }
 
-    private group<T>(type) {
+    private group<T extends GameObjectWithBody>(type) {
         const group = this.physics.add.group({
             allowGravity:  true,
             classType: type,
             maxSize: 16,
-            collideWorldBounds: true,
-            // @ts-ignore
-            createCallback: (bullet: T) => bullet.body.onWorldBounds = true //TS2322
+            collideWorldBounds: true
         });
         this.groups.set(type, group);
     }
 
     create() {
         StatsManager.start();
-        Disposables.forEach(T => this.group<typeof T>(T));
+        Disposables.forEach(T => this.group(T));
         // @ts-ignore
         this.enemies = this.physics.add.group({
             allowGravity:  false,

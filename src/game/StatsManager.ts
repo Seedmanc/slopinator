@@ -29,6 +29,7 @@ export class StatsManager {
         StatsManager.score = 0;
         EventBus.off('player:fire')
         EventBus.off('enemy:hit')
+        EventBus.off('score:up')
     }
 
 }

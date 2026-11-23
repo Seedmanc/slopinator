@@ -19,6 +19,7 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
          this.body.setCircle(7)
          this.setScale(1.5 ,1.5)
          this.setOrigin(0.25,0.5);
+         this.body.setCollideWorldBounds(true, null, null, true)
      }
      disableBody() {
          this.setActive(false);

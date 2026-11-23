@@ -1,7 +1,7 @@
 type AffinityRow = { type: string; color: `#${string}` };
 
 export const AFFINITIES = [
-    { type: 'Anime',   color: '#ff0000' },
+    { type: 'Anime',   color: '#ff00ff' },
     { type: 'Base',    color: '#ffff00' },
     { type: 'Realism', color: '#00ff00' },
 ] as const satisfies readonly AffinityRow[]; //marked red in IDE unknown "satisfies"

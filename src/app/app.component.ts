@@ -1,4 +1,4 @@
-import { Component, viewChild } from '@angular/core';
+import {Component, OnDestroy, viewChild} from '@angular/core';
 import { PhaserGame } from './phaser-game.component';
 import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
@@ -13,7 +13,7 @@ import {FormsModule} from "@angular/forms";
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
-export class AppComponent
+export class AppComponent implements OnDestroy
 {
     public spritePosition = { x: 0, y: 0 };
     public canMoveSprite = false;
@@ -74,5 +74,8 @@ export class AppComponent
 
     onBatchChange() {
         EventBus.emit('batch:change', this.batchSize);
+    }
+    ngOnDestroy() {
+        EventBus.removeAllListeners()
     }
 }

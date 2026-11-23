@@ -35,7 +35,7 @@ export default class Player extends Phaser.GameObjects.Container {
         return AFFINITIES[this._ammoIndex];
     }
 
-    constructor(public scene: Game, x: number, y: number) {
+    constructor(public scene: Game , x: number, y: number) {
         super(scene, x, y)
         this.width = scene.textures.get(K.Player).get().width;
         this.height = scene.textures.get(K.Player).get().height;
@@ -73,7 +73,7 @@ export default class Player extends Phaser.GameObjects.Container {
             radius: scene.textures.get(K.Player).get().width,
             trackColor: 'red', barColor: 'lime',
             anticlockwise: true, startAngle: 0,
-            valuechangeCallback:null
+            valuechangeCallback:null // useless but otherwise TS2769: No overload matches this call.
         })
         this.add(this._cooldown);
 
@@ -123,8 +123,8 @@ export default class Player extends Phaser.GameObjects.Container {
     disliked(reaction: Dislike) {
         this.hp -= reaction.BaseDmg;
         this.#hpView.setValue(this.hp);
-        this.body.acceleration.copy(reaction.body.velocity.scale(15))
-        this.scene.time.delayedCall(200,() =>{
+        this.body.acceleration.copy(reaction.body.velocity).scale(Balance.DmgKickback)
+        this.scene.time.delayedCall(Balance.DmgKickback*10,() =>{
             this.body.setAcceleration(0)
             if (this.hp<=0)
                 this.scene.changeScene('GameOver', {lose:true})
