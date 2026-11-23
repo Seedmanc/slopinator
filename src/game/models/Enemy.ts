@@ -6,6 +6,7 @@ import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 import Reaction, {Dislike, Like} from "./Reaction";
 import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
+import {EventBus} from "../EventBus";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     body : Phaser.Physics.Arcade.Body;
@@ -18,7 +19,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     private readonly image: Phaser.GameObjects.Image;
     private readonly Texture = K.Website;
 
-    constructor(public scene: Game, x: number, y: number, affinity: TAffinity) {
+    constructor(public scene: Game, x: number, y: number, _, affinity: TAffinity) {
         super(scene, x, y)
         this.affinity = affinity;
         this.width = scene.textures.get(this.Texture).get().width;
@@ -53,8 +54,11 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage; // 0 to 0.18
         this.alertness = Phaser.Math.Clamp(this.alertness, 0,1)
         this.alertView.setValue(this.alertness)
-        if (this.saturation >= 1)
-            this.scene.changeScene('GameOver', {lose:false})
+        if (this.saturation >= 1) {
+            this.setActive(false)
+            this.setAlpha(0.5)
+            EventBus.emit('site:saturated', this.alertness)
+        }
         else
             this.react(mismatch/maxAmmo)
     }
@@ -65,7 +69,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
             const type = good ? Like : Dislike;
             let  adjusted = (base + (good ? -1 : 1) * this.alertView.getValue()); // is it ok to use UIcomponent to avoid this.alertness/this.maxSat again?
             if (failProb == 0.5 || this.affinity == Affinity.Base) {
-                adjusted*=0.7
+                adjusted*=0.7   // generic type site is more passive... I wanted to avoid using ifs though, tying everything to numbers
             }
             for (let i=0;i<Math.floor(adjusted);i++) {
                 reactions.push(type);

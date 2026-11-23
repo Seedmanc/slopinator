@@ -12,7 +12,7 @@ export class StatsManager {
             StatsManager.shotsFired += amt;
         })
         EventBus.on('enemy:hit', ([enemy, proj])=> {
-            StatsManager.shotsLanded++;
+            StatsManager.shotsLanded++; // what if game ended when more bullets were en route to enemy as in batch? this decreases accuracy
         })
         EventBus.on('score:up', (base)=> {
             StatsManager.score+=base*10;

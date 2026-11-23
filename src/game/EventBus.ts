@@ -10,18 +10,17 @@ interface EvtEmitter extends EventEmitter {
 export const EventBus: EvtEmitter = new Events.EventEmitter();
 
 type GameEvents = {
-    /*"building:saturated": { buildingId: string };
-    "building:annoyanceOverflow": { buildingId: string };
+    "site:saturated": number;
+    /*"building:annoyanceOverflow": { buildingId: string };
     "shield:hit": { buildingId: string };
     "captcha:launched": { buildingId: string };
     "player:hit": { damage: number; source: "dislike" | "insult" | "pencil" };
     "like:collected": { hpFull: boolean };
     "boss:phase": { phase: "ranged" | "vacuum" | "trainedStrike" };*/
     "score:up": number;
-    "batch:change": number;
-    "batch:updated": number;
+    "batch:change": number; // from angular to game
+    "batch:updated": number; //from game to angular
     "scene:ready": Phaser.Scene;
-    "player:fire": number|null;
+    "player:fire": number;
     "enemy:hit": [enemy:TAffinity, proj:TAffinity];
-    // ...
 };
