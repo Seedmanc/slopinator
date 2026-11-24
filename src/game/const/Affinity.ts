@@ -1,4 +1,4 @@
-type AffinityRow = { type: string; color: `#${string}` };
+type AffinityRow = { type: string; color: `#${string}`};
 
 export const AFFINITIES = [
     { type: 'Anime',   color: '#ff00ff' },

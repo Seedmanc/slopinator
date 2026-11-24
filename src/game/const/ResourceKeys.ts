@@ -7,6 +7,6 @@ enum keys {
 
 const K = Object.fromEntries(
     Object.keys(keys).map(k => [k, String(keys[k])])
-) as Record<keyof typeof keys, keyof typeof keys>;
+) as Record<keyof typeof keys, keyof typeof keys>; // because writing {Player: "player"} violates DRY
 
 export default K;

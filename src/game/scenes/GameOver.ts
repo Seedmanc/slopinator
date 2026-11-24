@@ -14,7 +14,7 @@ export class GameOver extends Scene
         super('GameOver');
     }
 
-    init(data) {console.log(data)
+    init(data) {
         this.won = !data.lose;
     }
 

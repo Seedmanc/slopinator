@@ -19,12 +19,10 @@ export class AppComponent implements OnDestroy
     public canMoveSprite = false;
     public batchSize;
 
-    // New way to get the component instance
     phaserRef = viewChild.required(PhaserGame);
 
     constructor()
     {
-        // You can now safely set up your EventBus subscriptions here
         EventBus.on('scene:ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
         });

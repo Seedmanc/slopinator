@@ -4,9 +4,10 @@ import {TAffinity} from "./const/Affinity";
 
 interface EvtEmitter extends EventEmitter {
     on<K extends keyof GameEvents>(event: K, fn: (p?: GameEvents[K]) => void, context?: any): this;
+    off<K extends keyof GameEvents>(event: K, fn?: (p?: GameEvents[K]) => void, context?: any): this;
     emit<K extends keyof GameEvents>(event: K, p: GameEvents[K]): boolean;
 }
-// Used to emit events between components, HTML and Phaser scenes
+
 export const EventBus: EvtEmitter = new Events.EventEmitter();
 
 type GameEvents = {

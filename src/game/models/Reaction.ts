@@ -26,7 +26,7 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
          this.setVisible(false);
          this.body.enable=false;
      }
-     abstract launch(...args)
+     abstract launch(src: Vector2Like, ...args)
 
      protected enableBody({x, y}: Vector2Like) {
         this.body.reset(x, y);

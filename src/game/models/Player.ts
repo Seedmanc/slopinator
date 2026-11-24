@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import K from "../const/ResourceKeys";
 import EightDirection from "phaser4-rex-plugins/plugins/behaviors/eightdirection/EightDirection";
 import {EventBus} from "../EventBus";
-import { Game, matrix} from "../scenes/Game";
+import { Game } from "../scenes/Game";
 import StateMachine from "../states/StateMachine";
 import IdleState from "../states/Idle";
 import SwitchingState from "../states/Switching";
@@ -54,12 +54,10 @@ export default class Player extends Phaser.GameObjects.Container {
         });
         this.add(this.#hpView)
 
-        // @ts-ignore
         scene.add.existing(this);
-        // @ts-ignore
         scene.physics.add.existing(this);
         this.body.setCollideWorldBounds(true);
-
+        //TODO Object.values(cursorKeys).some(key => key.isDown) recalc aim on movement
         scene.input.on('pointermove', this.updateAim, this);
         scene.input.on('pointerdown', this.updateAim, this);
         const cursorKeys = <Phaser.Types.Input.Keyboard.CursorKeys>scene.input.keyboard.addKeys({
@@ -106,7 +104,7 @@ export default class Player extends Phaser.GameObjects.Container {
             if (!bullet)
                 return;
             bullet.setAffinity(this._ammoIndex);
-            el.getWorldTransformMatrix(matrix);
+            const matrix = el.getWorldTransformMatrix();
             let x = matrix.getX(1,1); let y = matrix.getY(1,1);
             bullet.enableBody(true, x, y, true, true);
             this.scene.physics.velocityFromAngle(this.#barrel.angle, bullet.speed, bullet.body.velocity);
@@ -121,6 +119,8 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     disliked(reaction: Dislike) {
+        if (this.hp == 0)
+            return;
         this.hp -= reaction.BaseDmg;
         this.#hpView.setValue(this.hp);
         this.body.acceleration.copy(reaction.body.velocity).scale(Balance.DmgKickback)

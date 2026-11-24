@@ -8,7 +8,7 @@ import {AFFINITIES} from "../const/Affinity";
 import {StatsManager} from "../StatsManager";
 import Group = Phaser.Physics.Arcade.Group;
 import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
-export const matrix = new Phaser.GameObjects.Components.TransformMatrix();
+import {Balance} from "../const/Balance";
 const Disposables = [Projectile, Dislike, Like];
 
 export class Game extends Scene {
@@ -30,13 +30,18 @@ export class Game extends Scene {
         this.groups.set(type, group);
     }
 
-    create() {
+    create() {/*
+        this.time.timeScale   = 0.5;
+        this.tweens.timeScale = 0.5;
+        // inverted and NaN-safe
+        this.physics.world.timeScale = 2*/
+
+
         StatsManager.start();
         Disposables.forEach(T => this.group(T));
-        // @ts-ignore
         this.enemies = this.physics.add.group({
             allowGravity:  false,
-            classType: Enemy, // because of this line IDE says "implement all members"
+            classType: Enemy,
             maxSize: 3,
             collideWorldBounds: true
         });
@@ -75,9 +80,14 @@ export class Game extends Scene {
         this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
         this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
         EventBus.on('batch:change', this.player.updateBatch, this.player);
-        EventBus.on('site:saturated', (alertness) => {
-            if (this.enemies.countActive() == 0)
-                this.changeScene('GameOver', {lose:false})
+        EventBus.on('site:saturated', () => {
+            if (this.enemies.countActive() == 0) {
+                this.scene.pause()
+                window.setTimeout( () =>{  //can't use scene.time because it's paused
+                    this.scene.stop()
+                    this.changeScene('GameOver', {lose:false})
+                }, 1000/Balance.Speed)
+            }
         });
 
         EventBus.emit('scene:ready', this);
@@ -88,6 +98,7 @@ export class Game extends Scene {
     }
     changeScene (which: string = 'GameOver', data?) {
         EventBus.off('batch:change')
+        EventBus.off('site:saturated')
         this.scene.start(which, data);
     }
 }
