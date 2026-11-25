@@ -1,10 +1,10 @@
-type AffinityRow = { type: string; color: `#${string}`};
+type AffinityRow = { type: string; color: `#${string}`; reactivity?: number|undefined};
 
 export const AFFINITIES = [
     { type: 'Anime',   color: '#ff00ff' },
-    { type: 'Base',    color: '#ffff00' },
+    { type: 'Base',    color: '#ffff00', reactivity: 0.75 },
     { type: 'Realism', color: '#00ff00' },
-] as const satisfies readonly AffinityRow[]; //marked red in IDE unknown "satisfies"
+] as const satisfies readonly AffinityRow[]; //marked red in IDE expecting new line or semicolon declaration expected etc
 
 type Indices<T extends readonly unknown[]> =
     Exclude<keyof T, keyof any[]> extends `${infer N extends number}`?

@@ -4,10 +4,11 @@ import {Game} from "../scenes/Game";
 import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
-import Reaction, {Dislike, Like} from "./Reaction";
-import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
+import Reaction from "./Reaction";
+import {AFFINITIES, TAffinity} from "../const/Affinity";
 import {EventBus} from "../EventBus";
 import {Balance} from "../const/Balance";
+import {fractionalFill} from "../const/core";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     body : Phaser.Physics.Arcade.Body;
@@ -62,27 +63,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
             this.setAlpha(0.5)
             EventBus.emit('site:saturated', this.alertness)
         } else
-            this.react(mismatch/maxAmmo)
+            this.react(mismatch/maxAmmo, proj.affinity)
     }
 
-    private react(failProb: number) {
-        let reactions = [];
-        const fractionalFill = (good: boolean, base: number = 1.25) => {
-            const type = good ? Like : Dislike;
-            let  adjusted = (base + (good ? -1 : 1) * this.alertness);
-            if (failProb == 0.5 || this.affinity == Affinity.Base) {
-                adjusted*=0.7   // generic type sites and bullets are more passive. I wanted to avoid using ifs though, tying everything to numbers
-            }
-            for (let i=0;i<Math.floor(adjusted);i++) {
-                reactions.push(type);
-            }
-            if (Phaser.Math.RND.frac() <= adjusted - Math.floor(adjusted)) {
-                reactions.push(type);
-            }
-        }
-
-        fractionalFill(Phaser.Math.RND.frac() >= failProb)
-
+    private react(failProb: number, projAffinity: TAffinity) {
+        const reactions = fractionalFill(Phaser.Math.RND.frac() >= failProb, Phaser.Math.RND.frac(), this.alertness,
+            AFFINITIES[this.affinity]['reactivity'], AFFINITIES[projAffinity]['reactivity'])
         reactions.forEach((r, i) => {
             this.scene.time.delayedCall(200 * i/Balance.Speed, () => {
                 const reaction = <Reaction>this.scene.groups.get(r).get()

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import {Game} from "../scenes/Game";
 import Vector2Like = Phaser.Types.Math.Vector2Like;
 import {Balance} from "../const/Balance";
+import {getAirToGroundAngle} from "../const/core";
 
 export default abstract class Reaction extends Phaser.GameObjects.Text {
      body: Phaser.Physics.Arcade.Body;
@@ -48,7 +49,7 @@ export class Like extends Reaction {
     }
     launch(pos: Vector2Like) {
         this.enableBody(pos)
-        this.scene.physics.velocityFromAngle( Phaser.Math.RND.between(30, 150), this.speed, this.body.velocity) //arc 120 to bottom
+        this.scene.physics.velocityFromAngle(Phaser.Math.RND.between(30, 150), this.speed, this.body.velocity) //arc 120 to bottom
     }
 }
 
@@ -67,29 +68,11 @@ export class Dislike extends Reaction {
     launch(src: Vector2Like, {x, y}: Vector2Like, high = 0) {
         this.enableBody(src)
         this.body.setGravityY(this.gravity)
-        const {angles,speed}  = this.getAirToGroundAngle(src, x,y, this.speed, this.body.gravity.y, this.scene.player.body.halfWidth)
+        const {angles,speed}  = getAirToGroundAngle(src, x,y, this.speed, this.body.gravity.y, this.scene.player.body.halfWidth)
         let angle = angles[high];
-        const maxH = this.speed**2 * Math.sin(angle)**2/(2*this.gravity)
+        const maxH = speed**2 * Math.sin(angle)**2/(2*this.gravity)
         if (maxH >= this.body.position.y)
             angle = angles[0]
         this.scene.physics.velocityFromAngle(Phaser.Math.RadToDeg(angle), speed, this.body.velocity);
-    }
-
-    private getAirToGroundAngle({x,y}, tx,ty, speed, gravity, tol) {
-        const dx = tx - x; const dy = y - ty;
-        if (Math.abs(dx) <= tol)
-            return {angles:[Math.PI/2, Math.PI/2], speed:0};
-        speed = speed * Phaser.Math.Clamp((Math.abs(dx)-200)/200+0.5,0.66,1.4) // smaller arc when tgt close, higher further away
-        const v2 = speed ** 2; const v4 = speed ** 4;
-        const x2 = dx * dx;
-        let root = v4 - gravity * (gravity * x2 + 2 * dy * v2);
-        if (root < 0) root = 0;
-        const sqrtRoot = Math.sqrt(root);
-        const gx = gravity * dx;
-        const offset = dx < 0 ?
-            Math.PI : 0;
-        const lowAngle =-Math.atan((v2 - sqrtRoot) / gx) + offset;
-        let highAngle = -Math.atan((v2 + sqrtRoot) / gx) + offset;
-        return {angles:[lowAngle, highAngle], speed};
     }
 }

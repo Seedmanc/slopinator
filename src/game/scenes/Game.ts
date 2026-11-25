@@ -9,7 +9,7 @@ import {StatsManager} from "../StatsManager";
 import Group = Phaser.Physics.Arcade.Group;
 import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
 import {Balance} from "../const/Balance";
-const Disposables = [Projectile, Dislike, Like];
+export const Disposables = [Projectile, Dislike, Like];
 
 export class Game extends Scene {
     player: Player;
