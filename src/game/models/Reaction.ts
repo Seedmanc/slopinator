@@ -8,7 +8,7 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
      private static readonly dislike = ['💢', '😡', '🚫', '👎','🤢'];
      private static readonly like = ['❤','👍','👌','🎯','💋'];
      protected abstract readonly bgColor: string;
-     protected speed = 400*Balance.Speed;
+     protected abstract speed;
      readonly BaseDmg = Balance.Damage;
 
      protected constructor(public scene: Game, x: number, y: number, type: 'like'|'dislike') {
@@ -40,7 +40,7 @@ export default abstract class Reaction extends Phaser.GameObjects.Text {
 
 export class Like extends Reaction {
     protected readonly bgColor = 'lime'
-
+    protected speed = 350;
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'like')
         this.body.setCircle(this.body.radius+1)
@@ -54,9 +54,9 @@ export class Like extends Reaction {
 
 
 export class Dislike extends Reaction {
-    private readonly gravity = 1000*Balance.Speed;
+    private readonly gravity = 1000;
     protected readonly bgColor = 'magenta'
-    protected speed = 350*Balance.Speed;
+    protected speed = 350;
 
     constructor(scene, x: number, y: number) {
         super(scene, x, y, 'dislike')

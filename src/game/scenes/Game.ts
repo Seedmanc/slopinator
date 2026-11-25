@@ -30,12 +30,10 @@ export class Game extends Scene {
         this.groups.set(type, group);
     }
 
-    create() {/*
-        this.time.timeScale   = 0.5;
-        this.tweens.timeScale = 0.5;
-        // inverted and NaN-safe
-        this.physics.world.timeScale = 2*/
-
+    create() {
+        this.time.timeScale = Balance.Speed;
+        this.tweens.timeScale = Balance.Speed;
+        this.physics.world.timeScale = 1/Balance.Speed
 
         StatsManager.start();
         Disposables.forEach(T => this.group(T));
@@ -95,6 +93,7 @@ export class Game extends Scene {
 
     update() {
         this.player.stateMachine.update();
+        this.player.update()
     }
     changeScene (which: string = 'GameOver', data?) {
         EventBus.off('batch:change')

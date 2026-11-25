@@ -5,7 +5,7 @@ import {Balance} from "../const/Balance";
 
 export default class Projectile extends Phaser.Physics.Arcade.Image {
      static readonly BaseDmg = Balance.Damage;
-     readonly speed = 400*Balance.Speed
+     readonly speed = 500
      body: Phaser.Physics.Arcade.Body;
      affinity: TAffinity;
 

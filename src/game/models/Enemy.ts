@@ -85,7 +85,10 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
         reactions.forEach((r, i) => {
             this.scene.time.delayedCall(200 * i/Balance.Speed, () => {
-                (<Reaction>this.scene.groups.get(r).get())?.launch(this, this.scene.player, 1 - i%2)
+                const reaction = <Reaction>this.scene.groups.get(r).get()
+                if (!reaction && this.scene.physics.world.drawDebug)
+                    console.warn(r, this.scene.groups.get(r).countActive(), 'not enough');
+                reaction?.launch(this, this.scene.player, 1 - i%2)
             })
         })
     }

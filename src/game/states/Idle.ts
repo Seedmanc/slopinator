@@ -6,10 +6,12 @@ import Projectile from "../models/Projectile";
 export default abstract class IdleState implements IState {
     static onUpdate(this: Player) {
         if (this.scene.input.activePointer.leftButtonDown() &&
-            this.scene.time.now >= this._nextFireAt &&
-            this.scene.groups.get(Projectile)?.getTotalFree() >= this.batchSize) {
-            this.fireBullets();
-            this._nextFireAt = this.scene.time.now + this._fireDelayMs*Math.sqrt(this.batchSize);
+            this.scene.time.now >= this._nextFireAt) {
+            if (this.scene.groups.get(Projectile)?.getTotalFree() >= this.batchSize) {
+                this.fireBullets();
+                this._nextFireAt = this.scene.time.now + this._fireDelayMs*Math.sqrt(this.batchSize);
+            } else if (this.scene.physics.world.drawDebug)
+                console.warn(Projectile, this.scene.groups.get(Projectile).countActive(), 'not enough')
         }
     }
     static onEnter(plr: Player) {

@@ -25,9 +25,10 @@ export default class Player extends Phaser.GameObjects.Container {
     readonly #sprite: Phaser.GameObjects.Image;
     readonly #batchPreview: Phaser.GameObjects.Container;
     readonly #hpView: LineProgressCanvas
+    readonly #cursorKeys;
     _eightDirection: EightDirection;
     _fireDelayMs = 1000/Balance.FireRate;
-    _defaultSpeed = 400*Balance.Speed;
+    _defaultSpeed = 400;
     _ammoIndex: TAffinity = Affinity.Realism;
     _cooldown: CircularProgressCanvas;
     _nextFireAt=0;
@@ -57,14 +58,13 @@ export default class Player extends Phaser.GameObjects.Container {
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this.body.setCollideWorldBounds(true);
-        //TODO Object.values(cursorKeys).some(key => key.isDown) recalc aim on movement
         scene.input.on('pointermove', this.updateAim, this);
         scene.input.on('pointerdown', this.updateAim, this);
-        const cursorKeys = <Phaser.Types.Input.Keyboard.CursorKeys>scene.input.keyboard.addKeys({
+        this.#cursorKeys = scene.input.keyboard.addKeys({
             up: 'W', down: 'S', left: 'A', right: 'D'
         });
         this._eightDirection = (<EightDirectionPlugin>scene.plugins.get('rexEightDirection'))
-            .add(this, { cursorKeys, speed: this._defaultSpeed});
+            .add(this, { cursorKeys: this.#cursorKeys, speed: this._defaultSpeed});
 
         this._cooldown = this.scene.add['rexCircularProgressCanvas']({
             x: 0, y: 0,
@@ -76,6 +76,11 @@ export default class Player extends Phaser.GameObjects.Container {
         this.add(this._cooldown);
 
         this.addStates();
+    }
+
+    update() {
+        if (Object.values(this.#cursorKeys).some(key => key['isDown']))
+            this.updateAim(this.scene.input.activePointer)
     }
 
     updateBatch(size = this.batchSize) {
