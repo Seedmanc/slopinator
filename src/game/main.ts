@@ -54,8 +54,10 @@ export const config: Phaser.Types.Core.GameConfig = {
     },
 };
 
-const StartGame = (parent: string) => {
-    return new Game({ ...config, parent });
+const StartGame = (parent: string, loadout) => {
+    const game = new Game({ ...config, parent}) ;
+    game.registry.set('loadout', loadout)
+    return game;
 }
 
 export default StartGame;

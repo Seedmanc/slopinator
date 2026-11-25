@@ -14,23 +14,15 @@ export const Disposables = [Projectile, Dislike, Like];
 export class Game extends Scene {
     player: Player;
     enemies: Group;
+    loadout: {maxBatch: number};
     readonly groups = new Map<typeof Disposables[number], Phaser.Physics.Arcade.Group>();
 
     constructor() {
         super('Game');
     }
 
-    private group<T extends GameObjectWithBody>(type) {
-        const group = this.physics.add.group({
-            allowGravity:  true,
-            classType: type,
-            maxSize: 16,
-            collideWorldBounds: true
-        });
-        this.groups.set(type, group);
-    }
-
     create() {
+        this.loadout = this.registry.get('loadout');
         this.time.timeScale = Balance.Speed;
         this.tweens.timeScale = Balance.Speed;
         this.physics.world.timeScale = 1/Balance.Speed
@@ -44,15 +36,40 @@ export class Game extends Scene {
             collideWorldBounds: true
         });
 
+        this.buildLevel()
+        this.addInteractions()
+        this.addControls()
+        this.addEvents()
+    }
+
+    update() {
+        this.player.stateMachine.update();
+        this.player.update()
+    }
+
+    private group<T extends GameObjectWithBody>(type) {
+        const group = this.physics.add.group({
+            allowGravity:  true,
+            classType: type,
+            maxSize: 16,
+            collideWorldBounds: true
+        });
+        this.groups.set(type, group);
+    }
+
+    private buildLevel() {console.info(this.loadout)
         this.player = new Player(this, this.scale.width / 2, this.scale.height * 0.75);
+        AFFINITIES.forEach((_,i) => this.enemies.create(this.scale.width/4*(i+1), this.scale.height*0.25, null, i))
 
         const playerZone = this.add.zone(0, 0, this.scale.width, this.scale.height / 2).setOrigin(0, 0);
         this.physics.add.existing(playerZone, true);
+        this.physics.add.collider(this.player, playerZone);
+
         const enemyZone = this.add.zone(0, this.scale.height / 2, this.scale.width, this.scale.height / 2).setOrigin(0, 0);
         this.physics.add.existing(enemyZone, true);
-        this.physics.add.collider(this.player, playerZone);
         this.physics.add.collider(this.enemies, enemyZone);
-
+    }
+    private addInteractions() {
         this.physics.add.collider(this.player, this.groups.get(Dislike), (plr:Player, reaction:Dislike) => {
             plr.disliked(reaction)
             reaction.disableBody();
@@ -61,9 +78,6 @@ export class Game extends Scene {
             reaction.disableBody();
             plr.liked(reaction)
         });
-
-        AFFINITIES.forEach((_,i) => this.enemies.create(this.scale.width/4*(i+1), this.scale.height*0.25, null, i))
-
         this.physics.world.on('worldbounds', (body) => {
             if (Disposables.some(type => body.gameObject instanceof type)) {
                 body.gameObject.disableBody(true, true);
@@ -74,9 +88,13 @@ export class Game extends Scene {
             proj.disableBody(true, true);
             EventBus.emit('enemy:hit', [enemy.affinity, proj.affinity]);
         });
-
+    }
+    private addControls() {
         this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
         this.input.keyboard.on('keydown-E',()=>this.player.updateBatch(this.player.batchSize+1));
+        this.input.on('wheel', (_, __, ___, deltaY) =>  this.player.updateBatch(this.player.batchSize-Math.sign(deltaY)));
+    }
+    private addEvents() {
         EventBus.on('batch:change', this.player.updateBatch, this.player);
         EventBus.on('site:saturated', () => {
             if (this.enemies.countActive() == 0) {
@@ -87,15 +105,9 @@ export class Game extends Scene {
                 }, 1000/Balance.Speed)
             }
         });
-
         EventBus.emit('scene:ready', this);
     }
-
-    update() {
-        this.player.stateMachine.update();
-        this.player.update()
-    }
-    changeScene (which: string = 'GameOver', data?) {
+    changeScene(which: string = 'GameOver', data?) {
         EventBus.off('batch:change')
         EventBus.off('site:saturated')
         this.scene.start(which, data);

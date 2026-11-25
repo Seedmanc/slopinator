@@ -84,7 +84,7 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     updateBatch(size = this.batchSize) {
-        this.batchSize = Phaser.Math.Clamp(size,1,4);
+        this.batchSize = Phaser.Math.Clamp(size,1, this.scene.loadout.maxBatch);
         this.#batchPreview.removeAll();
         const rectangles = [] ;
         for (let i = 0; i < this.batchSize; i++) {

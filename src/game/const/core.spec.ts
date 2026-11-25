@@ -51,6 +51,8 @@ describe('core utilities', () => {
             expect(result.speed).toBeGreaterThan(0);
             expect(result.angles.length).toBe(2);
             expect(result.angles[0]).toBeDefined()
+            expect(result.angles[1]).toBeCloseTo(-Math.PI/4,Math.PI/4)
+            expect(result.angles[0]).toBeCloseTo(0,Math.PI/4)
             expect(result.angles[1]).toBeDefined()
             expect(result.angles[1]).toBeLessThan(result.angles[0]);
         });

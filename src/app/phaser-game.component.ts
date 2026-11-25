@@ -1,4 +1,4 @@
-import {AfterViewInit, Component} from "@angular/core";
+import {AfterViewInit, Component, Input} from "@angular/core";
 import Phaser from "phaser";
 import StartGame from "../game/main";
 import { EventBus } from "../game/EventBus";
@@ -9,13 +9,14 @@ import { EventBus } from "../game/EventBus";
     standalone: true,
 })
 export class PhaserGame implements AfterViewInit {
+    @Input() loadout;
     readonly parentId = 'game-container';
     scene: Phaser.Scene;
     game: Phaser.Game;
     sceneCallback: (scene: Phaser.Scene) => void;
 
     ngAfterViewInit () {
-        this.game = StartGame(this.parentId);
+        this.game = StartGame(this.parentId, this.loadout);
         EventBus.on('scene:ready', (scene: Phaser.Scene) => {
             this.scene = scene;
 

@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 
+// unused for now, ignore
 export class Boot extends Scene
 {
     constructor ()

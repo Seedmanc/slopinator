@@ -1,7 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
-
 import { EventBus } from '../EventBus';
 
+// unused for now, ignore
 export class MainMenu extends Scene
 {
     background: GameObjects.Image;
