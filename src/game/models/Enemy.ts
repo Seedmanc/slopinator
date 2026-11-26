@@ -4,18 +4,16 @@ import {Game} from "../scenes/Game";
 import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
-import Reaction, {Dislike, Like} from "./Reaction";
 import {AFFINITIES, TAffinity} from "../const/Affinity";
 import {EventBus} from "../EventBus";
-import {Balance} from "../const/Balance";
-import {fractionalFill} from "../const/core";
+import {ReactSpawner} from "./ReactSpawner";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     body : Phaser.Physics.Arcade.Body;
     affinity: TAffinity;
 
     private saturation: number = 0;
-    private alertness: number = 0;
+    alertness: number = 0;
     private readonly satView: LineProgressCanvas;
     private readonly alertView: LineProgressCanvas;
     private readonly image: Phaser.GameObjects.Image;
@@ -49,8 +47,8 @@ export default class Enemy extends Phaser.GameObjects.Container {
             return;
         const damage = Projectile.BaseDmg;
         const mismatch = Math.abs(this.affinity - proj.affinity); //0 to 2
-        const maxAmmo = AFFINITIES.length-1
-        this.saturation += (maxAmmo - mismatch) * damage;   //0 to 0.2
+        const maxType = AFFINITIES.length-1
+        this.saturation += (maxType - mismatch) * damage;   //0 to 0.2
         this.saturation = Phaser.Math.Clamp(Phaser.Math.RoundTo(this.saturation,-3), 0,1)
         this.satView.setValue(this.saturation)
 
@@ -63,21 +61,6 @@ export default class Enemy extends Phaser.GameObjects.Container {
             this.setAlpha(0.5)
             EventBus.emit('site:saturated', this.alertness)
         } else
-            this.react(mismatch/maxAmmo, proj.affinity)
-    }
-
-    private react(failProb: number, projAffinity: TAffinity) {
-        const isGood = Phaser.Math.RND.frac() >= failProb;
-        const reactions = fractionalFill(isGood, Phaser.Math.RND.frac(), this.alertness, AFFINITIES[this.affinity]['reactivity'], AFFINITIES[projAffinity]['reactivity'])
-        const type = isGood ? Like : Dislike;
-
-        reactions.forEach((_, i) => {
-            this.scene.time.delayedCall(Balance.ReactDelay * i/Balance.Speed, () => {
-                const reaction = <Reaction>this.scene.groups.get(type).get()
-                if (!reaction && this.scene.physics.world.drawDebug)
-                    console.warn(type, this.scene.groups.get(type).countActive(), 'not enough');
-                reaction?.launch(this, this.scene.player, 1 - i%2)
-            })
-        })
+            ReactSpawner.spawn(mismatch/maxType, this, this.scene.player, proj, this.scene)
     }
 }
