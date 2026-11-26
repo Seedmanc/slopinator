@@ -3,34 +3,26 @@ import { Dislike, Like } from '../models/Reaction';
 
 describe('core utilities', () => {
     describe('fractionalFill', () => {
-        it('returns a Like reaction array for good true and floor portion of the rate', () => {
+        it('returns a filled  array for good true and floor portion of the rate', () => {
             const result = fractionalFill(true, 0.5, 0.25);
-
             expect(result.length).toBe(1);
-            expect(result.every((reaction) => reaction === Like)).toBeTrue();
         });
 
         it('adds an extra reaction when the random value falls within the fractional remainder', () => {
             const result = fractionalFill(false, 0.4, 0.25);
-
             expect(result.length).toBe(2);
-            expect(result.every((reaction) => reaction === Dislike)).toBeTrue();
         });
         it('doesnt add  an extra reaction when the random value is outside the fractional remainder', () => {
             const result = fractionalFill(false, 0.4, 1);
-
             expect(result.length).toBe(2);
-            expect(result.every((reaction) => reaction === Dislike)).toBeTrue();
         });
 
         it('applies the minimum reactivity value when adjusting the effective rate', () => {
             const result = fractionalFill(true, 0.6, 0.25, 0.5, 0.9);
-
             expect(result.length).toBe(0);
         });
         it('does not multiply reactivities', () => {
             const result = fractionalFill(true, 0.4, 0.25, 0.5, 0.5);
-
             expect(result.length).toBe(1);
         });
     });

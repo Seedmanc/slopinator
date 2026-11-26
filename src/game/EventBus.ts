@@ -12,12 +12,6 @@ export const EventBus: EvtEmitter = new Events.EventEmitter();
 
 type GameEvents = {
     "site:saturated": number;
-    /*"building:annoyanceOverflow": { buildingId: string };
-    "shield:hit": { buildingId: string };
-    "captcha:launched": { buildingId: string };
-    "player:hit": { damage: number; source: "dislike" | "insult" | "pencil" };
-    "like:collected": { hpFull: boolean };
-    "boss:phase": { phase: "ranged" | "vacuum" | "trainedStrike" };*/
     "score:up": number;
     "batch:change": number; // from angular to game
     "batch:updated": number; //from game to angular

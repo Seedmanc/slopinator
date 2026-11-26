@@ -1,9 +1,14 @@
+import Projectile from "../models/Projectile";
+import {Dislike, Like} from "../models/Reaction";
+
 enum keys {
     Player,
     Barrel,
     Projectile,
     Website
 }
+
+export const Pooled = [Projectile, Dislike, Like];
 
 const K = Object.fromEntries(
     Object.keys(keys).map(k => [k, String(keys[k])])

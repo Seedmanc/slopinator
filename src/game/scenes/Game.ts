@@ -9,13 +9,13 @@ import {StatsManager} from "../StatsManager";
 import Group = Phaser.Physics.Arcade.Group;
 import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
 import {Balance} from "../const/Balance";
-export const Disposables = [Projectile, Dislike, Like];
+import {Pooled} from "../const/ResourceKeys";
 
 export class Game extends Scene {
     player: Player;
     enemies: Group;
     loadout: {maxBatch: number};
-    readonly groups = new Map<typeof Disposables[number], Phaser.Physics.Arcade.Group>();
+    readonly groups = new Map<typeof Pooled[number], Phaser.Physics.Arcade.Group>();
 
     constructor() {
         super('Game');
@@ -28,7 +28,7 @@ export class Game extends Scene {
         this.physics.world.timeScale = 1/Balance.Speed
 
         StatsManager.start();
-        Disposables.forEach(T => this.group(T));
+        Pooled.forEach(T => this.group(T));
         this.enemies = this.physics.add.group({
             allowGravity:  false,
             classType: Enemy,
@@ -79,7 +79,7 @@ export class Game extends Scene {
             plr.liked(reaction)
         });
         this.physics.world.on('worldbounds', (body) => {
-            if (Disposables.some(type => body.gameObject instanceof type)) {
+            if (Pooled.some(type => body.gameObject instanceof type)) {
                 body.gameObject.disableBody(true, true);
             }
         });

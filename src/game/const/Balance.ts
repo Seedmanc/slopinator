@@ -3,5 +3,6 @@ export const Balance = {
     Damage: 0.1,
     FireRate: 2,
     DmgKickback: 16,
-    AmmoSwitchDelay: 1000
+    AmmoSwitchDelay: 1000,
+    ReactDelay: 200
 }

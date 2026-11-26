@@ -33,7 +33,7 @@ export class AppComponent implements OnDestroy
 
     public changeScene()
     {
-        const scene = this.phaserRef().scene;// as MainMenu;
+        const scene = this.phaserRef().scene;
         if (scene) {
             scene['changeScene']();
         }

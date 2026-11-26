@@ -1,20 +1,14 @@
-import {Dislike, Like} from "../models/Reaction";
-import {Disposables} from "../scenes/Game";
 import Phaser from "phaser";
 
-export const fractionalFill = (good: boolean, random: number, alertness: number, ownReactivity = 1, projReactivity = 1): typeof Disposables => {
+export const fractionalFill = (good: boolean, random: number, alertness: number, ownReactivity = 1, projReactivity = 1): any[] => {
     const reactions = []; const baseRate = 1.25;
-    const type = good ? Like : Dislike;
     let  adjusted = (baseRate + (good ? -1 : 1) * alertness);
     adjusted *= Math.min(ownReactivity,projReactivity)
-
-    for (let i=0;i<Math.floor(adjusted);i++) {
-        reactions.push(type);
+    reactions.length = Math.floor(adjusted)
+    if (random <= adjusted - reactions.length) {
+        reactions.length++
     }
-    if (random <= adjusted - Math.floor(adjusted)) {
-        reactions.push(type);
-    }
-    return reactions;
+    return reactions.fill(0);
 }
 
 export function getAirToGroundAngle({x,y}, tx,ty, speed, gravity, tol) {

@@ -10,7 +10,7 @@ export default abstract class SwitchingState implements IState {
         plr._cooldown.setTrackColor(plr._ammo.color)
         plr._cooldown.setBarColor(AFFINITIES[nextAmmo]?.color)
         plr._cooldown.setValue(0);
-        plr._eightDirection.setSpeed(plr._defaultSpeed/1.5) // HDD stutter replacement as movement is owned by rex plugin
+        plr._eightDirection.setSpeed(plr._defaultSpeed/1.5) // HDD stutter replacement for now as movement is owned by rex plugin
         plr.scene.tweens.killTweensOf(plr._cooldown)
         plr.scene.tweens.add({
             targets: plr._cooldown,

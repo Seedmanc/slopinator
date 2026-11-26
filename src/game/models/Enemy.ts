@@ -4,7 +4,7 @@ import {Game} from "../scenes/Game";
 import Projectile from "./Projectile";
 import UIPlugin from "phaser4-rex-plugins/templates/ui/ui-plugin";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
-import Reaction from "./Reaction";
+import Reaction, {Dislike, Like} from "./Reaction";
 import {AFFINITIES, TAffinity} from "../const/Affinity";
 import {EventBus} from "../EventBus";
 import {Balance} from "../const/Balance";
@@ -67,13 +67,15 @@ export default class Enemy extends Phaser.GameObjects.Container {
     }
 
     private react(failProb: number, projAffinity: TAffinity) {
-        const reactions = fractionalFill(Phaser.Math.RND.frac() >= failProb, Phaser.Math.RND.frac(), this.alertness,
-            AFFINITIES[this.affinity]['reactivity'], AFFINITIES[projAffinity]['reactivity'])
-        reactions.forEach((r, i) => {
-            this.scene.time.delayedCall(200 * i/Balance.Speed, () => {
-                const reaction = <Reaction>this.scene.groups.get(r).get()
+        const isGood = Phaser.Math.RND.frac() >= failProb;
+        const reactions = fractionalFill(isGood, Phaser.Math.RND.frac(), this.alertness, AFFINITIES[this.affinity]['reactivity'], AFFINITIES[projAffinity]['reactivity'])
+        const type = isGood ? Like : Dislike;
+
+        reactions.forEach((_, i) => {
+            this.scene.time.delayedCall(Balance.ReactDelay * i/Balance.Speed, () => {
+                const reaction = <Reaction>this.scene.groups.get(type).get()
                 if (!reaction && this.scene.physics.world.drawDebug)
-                    console.warn(r, this.scene.groups.get(r).countActive(), 'not enough');
+                    console.warn(type, this.scene.groups.get(type).countActive(), 'not enough');
                 reaction?.launch(this, this.scene.player, 1 - i%2)
             })
         })
