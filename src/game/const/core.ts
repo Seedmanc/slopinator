@@ -1,10 +1,15 @@
 import Phaser from "phaser";
+import {AFFINITIES, TAffinity} from "./Affinity";
+import Projectile from "../models/Projectile";
+import {Dislike, Like} from "../models/Reaction";
+
+export const Pooled = [Projectile, Dislike, Like];
 
 export const fractionalFill = (good: boolean, random: number, alertness: number, ownReactivity = 1, projReactivity = 1): any[] => {
     const reactions = []; const baseRate = 1.25;
     let  adjusted = (baseRate + (good ? -1 : 1) * alertness);
     adjusted *= Math.min(ownReactivity,projReactivity)
-    reactions.length = Math.floor(adjusted)
+    reactions.length = Math.max(0, Math.floor(adjusted))
     if (random <= adjusted - reactions.length) {
         reactions.length++
     }
@@ -27,4 +32,14 @@ export function getAirToGroundAngle({x,y}, tx,ty, speed, gravity, tol) {
     const lowAngle =-Math.atan((v2 - sqrtRoot) / gx) + offset;
     let highAngle = -Math.atan((v2 + sqrtRoot) / gx) + offset;
     return {angles:[lowAngle, highAngle], speed};
+}
+
+export const Matchup = (tgtAff: TAffinity, projAff: TAffinity, dmg: number): {satDelta: number, alertDelta: number, mismatchMul: number} => {
+    const mismatch = Math.abs(tgtAff - projAff)
+    const maxType = AFFINITIES.length-1
+    return {
+        satDelta: (maxType - mismatch) * dmg,
+        alertDelta: 0.9 * mismatch * dmg,
+        mismatchMul: mismatch/maxType
+    }
 }

@@ -4,12 +4,12 @@ import Player from "../models/Player";
 import Projectile from "../models/Projectile";
 import Enemy from "../models/Enemy";
 import {Dislike, Like} from "../models/Reaction";
-import {AFFINITIES} from "../const/Affinity";
-import {StatsManager} from "../StatsManager";
+import {AFFINITIES, TAffinity} from "../const/Affinity";
+import {RunStatsManager} from "../RunStatsManager";
 import Group = Phaser.Physics.Arcade.Group;
 import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
 import {Balance} from "../const/Balance";
-import {Pooled} from "../const/ResourceKeys";
+import {Pooled} from "../const/core";
 
 export class Game extends Scene {
     player: Player;
@@ -27,7 +27,7 @@ export class Game extends Scene {
         this.tweens.timeScale = Balance.Speed;
         this.physics.world.timeScale = 1/Balance.Speed
 
-        StatsManager.start();
+        RunStatsManager.start();
         Pooled.forEach(T => this.group(T));
         this.enemies = this.physics.add.group({
             allowGravity:  false,
@@ -57,9 +57,11 @@ export class Game extends Scene {
         this.groups.set(type, group);
     }
 
-    private buildLevel() {console.info(this.loadout)
+    private buildLevel() {
         this.player = new Player(this, this.scale.width / 2, this.scale.height * 0.75);
-        AFFINITIES.forEach((_,i) => this.enemies.create(this.scale.width/4*(i+1), this.scale.height*0.25, null, i))
+        AFFINITIES.forEach((_,i:TAffinity) => {
+            this.enemies.add(new Enemy(this, this.scale.width/4*(i+1), this.scale.height*0.25, i))
+        })
 
         const playerZone = this.add.zone(0, 0, this.scale.width, this.scale.height / 2).setOrigin(0, 0);
         this.physics.add.existing(playerZone, true);
@@ -101,15 +103,15 @@ export class Game extends Scene {
                 this.scene.pause()
                 window.setTimeout( () =>{  //can't use scene.time because it's paused
                     this.scene.stop()
-                    this.changeScene('GameOver', {lose:false})
+                    this.changeScene('GameOver', false)
                 }, 1000/Balance.Speed)
             }
         });
         EventBus.emit('scene:ready', this);
     }
-    changeScene(which: string = 'GameOver', data?) {
+    changeScene(which: string = 'GameOver', lost) {
         EventBus.off('batch:change')
         EventBus.off('site:saturated')
-        this.scene.start(which, data);
+        this.scene.start(which, {...RunStatsManager.getRunSummary(), lost});
     }
 }

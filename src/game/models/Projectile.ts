@@ -4,10 +4,10 @@ import {AFFINITIES, TAffinity} from "../const/Affinity";
 import {Balance} from "../const/Balance";
 
 export default class Projectile extends Phaser.Physics.Arcade.Image {
-     static readonly BaseDmg = Balance.Damage;
-     readonly speed = 500
+     speed = Balance.ProjSpeed;
      body: Phaser.Physics.Arcade.Body;
      affinity: TAffinity;
+     damage = Balance.Damage
 
      constructor(scene: Phaser.Scene, x: number, y: number) {
         super(scene, x, y, K.Projectile)

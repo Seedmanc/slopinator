@@ -5,7 +5,7 @@
 
 ## 1. Concept
 
-A top-down, satirical roguelite shooter. The player controls a robot/AI image-generation program (styled after tools like Forge). The "world" is a stylized map of the internet; targets are websites representing social platforms (X, Facebook, anime boorus, etc).
+A top-down, satirical roguelite shooter, Space Invaders-type. The player controls a robot/AI image-generation program (styled after tools like Forge). The "world" is a stylized map of the internet; targets are websites representing social platforms (X, Facebook, anime boorus, etc).
 The player's goal is to saturate sites with AI-generated images until they're overwhelmed, while managing incoming backlash and choosing the right generative model ammo for each target.
 
 **Core fantasy:** you're an AI image bot flooding the internet, and the internet fights back.
@@ -127,9 +127,9 @@ Each slice should be played and evaluated before starting the next — the goal 
 - **Dataset quality formula** for the boss vacuum phase — exact ratio/weighting of  valid vs. junk samples, and how strongly it should scale trained-strike damage.
 - **Mismatch reaction tuning** — does every wrong-ammo hit trigger a retaliation burst,  or is it chance/cooldown-based (alertness based)? Needs playtesting; too punitive will feel bad once  multiple sites are live at once.
 - **Full pre-run settings list** — max batch size and overclock are defined; what else  belongs in the shared VRAM/PSU budget pool? 
-- Add "quality" attribute to player shots affected by loadout params like sampler or flash attention toggle. Speed/quality tradeoff, lower quality shots raise annoyance faster (produces "slop"). Maybe have it affect the speed of projectiles instead of fire rate? Or tie speed to hardware "internet connection" upgrade?
+- Add "quality" attribute to player shots affected by loadout params like sampler or flash attention toggle. Speed/quality tradeoff, lower quality shots raise alertness faster (produces "slop"). Maybe have it affect the speed of projectiles instead of fire rate? Or tie speed to hardware "internet connection" upgrade?
 - **Introducing the vacuum mechanic before the boss** — whether a smaller "capture, don't shoot" enemy type should appear earlier in a run so the boss's alt-fire mode isn't a   first-time surprise. Or just use vacuum to collect likes.
 - **Difficulty pacing** — rate of site spawn escalation, and how it should scale   across a single run vs. across meta-progression.  
 - **Art direction** — visual language for the "internet" map, platform sites, and   the artist boss; currently unspecified. Use vector graphics instead of bitmap assets so AI detection can't be applied to them.
 - **Persistence** — how upgrades, unlocks, and run history are saved (local storage), not yet decided.
-- **Difficulty choice** In the beginning select from 3 difficulty levels named after years: 2022 as easy, only SD1.5 era models available, fast fire rate, 2024 medium with SDXL and slower shooting, 2026 is hard mode with Flux 2 models and slow charged shots requiring good aim instead of "spray and pray", higher annoyance rise representing current backlash against AI online. Rename upgrades accordingly so Flash attention versions correspond to ones available at the time.
+- **Difficulty choice** In the beginning select from 3 difficulty levels named after years: 2022 as easy, only SD1.5 era models available, fast fire rate, 2024 medium with SDXL and slower shooting, 2026 is hard mode with Flux 2 models and slow charged shots requiring good aim instead of "spray and pray", higher alertness rise representing current backlash against AI online. Rename upgrades accordingly so Flash attention versions correspond to ones available at the time.

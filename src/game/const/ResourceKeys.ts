@@ -8,8 +8,6 @@ enum keys {
     Website
 }
 
-export const Pooled = [Projectile, Dislike, Like];
-
 const K = Object.fromEntries(
     Object.keys(keys).map(k => [k, String(keys[k])])
 ) as Record<keyof typeof keys, keyof typeof keys>; // because writing {Player: "player"} violates DRY

@@ -1,5 +1,4 @@
-import { getAirToGroundAngle, fractionalFill } from './core';
-import { Dislike, Like } from '../models/Reaction';
+import {getAirToGroundAngle, fractionalFill, Matchup} from './core';
 
 describe('core utilities', () => {
     describe('fractionalFill', () => {
@@ -56,4 +55,38 @@ describe('core utilities', () => {
             expect(result.speed).toBeGreaterThanOrEqual(350 * 0.66);
         });
     });
+
+    describe('matchup', () => {
+        it('calcs results for perfect match and scales with damage', () => {
+            let result = Matchup(0, 0, 0.1);
+            expect(result).toEqual({
+                satDelta: 0.2,
+                alertDelta: 0,
+                mismatchMul: 0
+            });
+
+            result = Matchup(0, 0, 0.2);
+            expect(result).toEqual({
+                satDelta: 0.4,
+                alertDelta: 0,
+                mismatchMul: 0
+            });
+        });
+        it('calcs results for worst mismatch', () => {
+            let m = Matchup(0, 2, 0.3);
+            expect(m).toEqual({
+                satDelta: 0,
+                alertDelta: 0.54,
+                mismatchMul: 1
+            });
+        });
+        it('calcs results for medium mismatch', () => {
+            let m = Matchup(1, 0, 0.3);
+            expect(m).toEqual({
+                satDelta: 0.3,
+                alertDelta: 0.27,
+                mismatchMul: 0.5
+            });
+        });
+    })
 });

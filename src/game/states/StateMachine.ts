@@ -1,3 +1,5 @@
+import GameObjectWithBody = Phaser.Types.Physics.Arcade.GameObjectWithBody;
+
 export interface IState
 {
 	name?: string|number
@@ -9,18 +11,18 @@ export interface IState
 
 let idCount = 0
 
-export default class StateMachine
+export default class StateMachine<T extends GameObjectWithBody>
 {
 	private id = (++idCount).toString()
-	private context: object
+	private context: T
 	private states = new Map<string|number, IState>()
 
 	previousState?: IState
 	private currentState!: IState
 	private isChangingState = false
-	private changeStateQueue: (string|number)[] = []
+	private changeStateQueue: { name:string|number, payload?:any }[] = []
 
-	constructor(context: object, id?: string) {
+	constructor(context: T, id?: string) {
 		this.id = id ?? this.id
 		this.context = context
 	}
@@ -57,13 +59,13 @@ export default class StateMachine
 			return;
 
 		if (this.isChangingState) {
-			this.changeStateQueue.push(name)
+			this.changeStateQueue.push({name, payload})
 			return
 		}
 
 		this.isChangingState = true
 
-		if (this.context['scene'].physics.world.drawDebug)
+		if (this.context.scene.physics.world.drawDebug)
 			console.log(`[StateMachine (${this.id})] change from ${this.currentState?.name} to ${name}`)
 
 		if (this.currentState && this.currentState.onExit)
@@ -80,7 +82,8 @@ export default class StateMachine
 
 	update(...args)	{
 		if (this.changeStateQueue.length > 0) {
-			this.setState(this.changeStateQueue.shift())
+		    const q = this.changeStateQueue.shift()
+			this.setState(q.name, q.payload)
 			return
 		}
 

@@ -15,7 +15,7 @@ export class ReactSpawner {
         const type = isGood ? Like : Dislike;
 
         reactions.forEach((_, i) => {
-            scene.time.delayedCall(Balance.ReactDelay * i/Balance.Speed, () => {
+            scene.time.delayedCall(Balance.ReactDelay * i, () => {
                 const reaction = <Reaction>scene.groups.get(type).get()
                 if (!reaction && scene.physics.world.drawDebug)
                     console.warn(type, scene.groups.get(type).countActive(), 'not enough');

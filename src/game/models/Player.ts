@@ -14,11 +14,13 @@ import {AFFINITIES, Affinity, TAffinity} from "../const/Affinity";
 import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 import {Dislike, Like} from "./Reaction";
 import {Balance} from "../const/Balance";
+import RoundTo = Phaser.Math.RoundTo;
+import Clamp = Phaser.Math.Clamp;
 
 export default class Player extends Phaser.GameObjects.Container {
     batchSize = 1;
     body : Phaser.Physics.Arcade.Body;
-    stateMachine: StateMachine
+    stateMachine: StateMachine<Player>
     hp = 1;
 
     readonly #barrel: Phaser.GameObjects.Image;
@@ -85,7 +87,7 @@ export default class Player extends Phaser.GameObjects.Container {
 
     updateBatch(size = this.batchSize) {
         this.batchSize = Phaser.Math.Clamp(size,1, this.scene.loadout.maxBatch);
-        this.#batchPreview.removeAll();
+        this.#batchPreview.removeAll(true);
         const rectangles = [] ;
         for (let i = 0; i < this.batchSize; i++) {
             let rect = this.scene.add.rectangle(0, 0, 10, 10, Phaser.Display.Color.ValueToColor(this._ammo.color).color,0.7);
@@ -124,15 +126,15 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     disliked(reaction: Dislike) {
-        if (this.hp == 0)
-            return;
         this.hp -= reaction.BaseDmg;
         this.#hpView.setValue(this.hp);
+        this.hp = Clamp(RoundTo(this.hp, -3), 0, 1)
         this.body.acceleration.copy(reaction.body.velocity).scale(Balance.DmgKickback)
         this.scene.time.delayedCall(Balance.DmgKickback*10,() =>{
             this.body.setAcceleration(0)
-            if (this.hp<=0)
-                this.scene.changeScene('GameOver', {lose:true})
+            if (this.hp<=0) {
+                this.scene.changeScene('GameOver', true)
+            }
         })
     }
 
@@ -140,6 +142,7 @@ export default class Player extends Phaser.GameObjects.Container {
         if (this.hp<1) {
             this.hp += reaction.BaseDmg;
             this.#hpView.setValue(this.hp);
+            this.hp = Clamp(RoundTo(this.hp, -3), 0, 1)
         } else
             EventBus.emit('score:up', reaction.BaseDmg)
     }
@@ -154,7 +157,7 @@ export default class Player extends Phaser.GameObjects.Container {
     }
 
     private addStates() {
-        this.stateMachine = new StateMachine(this, 'player')
+        this.stateMachine = new StateMachine<Player>(this, 'player')
         this.stateMachine
             .addState('S.Idle', IdleState)
             .addState('S.Switching', SwitchingState)

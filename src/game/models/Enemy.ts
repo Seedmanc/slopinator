@@ -7,6 +7,7 @@ import LineProgressCanvas = UIPlugin.LineProgressCanvas;
 import {AFFINITIES, TAffinity} from "../const/Affinity";
 import {EventBus} from "../EventBus";
 import {ReactSpawner} from "./ReactSpawner";
+import {Matchup} from "../const/core";
 
 export default class Enemy extends Phaser.GameObjects.Container {
     body : Phaser.Physics.Arcade.Body;
@@ -19,7 +20,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     private readonly image: Phaser.GameObjects.Image;
     private readonly Texture = K.Website;
 
-    constructor(public scene: Game, x: number, y: number, _, affinity: TAffinity) {
+    constructor(public scene: Game, x: number, y: number, affinity: TAffinity) {
         super(scene, x, y)
         this.affinity = affinity;
         this.width = scene.textures.get(this.Texture).get().width;
@@ -45,14 +46,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
     hit(proj: Projectile) {
         if (!this.active)
             return;
-        const damage = Projectile.BaseDmg;
-        const mismatch = Math.abs(this.affinity - proj.affinity); //0 to 2
-        const maxType = AFFINITIES.length-1
-        this.saturation += (maxType - mismatch) * damage;   //0 to 0.2
+        const matchup = Matchup(this.affinity, proj.affinity, proj.damage)
+        this.saturation += matchup.satDelta;   //0 to 0.2
         this.saturation = Phaser.Math.Clamp(Phaser.Math.RoundTo(this.saturation,-3), 0,1)
         this.satView.setValue(this.saturation)
 
-        this.alertness += (1 - Projectile.BaseDmg) * mismatch * damage; // 0 to 0.18
+        this.alertness += matchup.alertDelta; // 0 to 0.18
         this.alertness = Phaser.Math.Clamp(Phaser.Math.RoundTo(this.alertness,-3), 0,1)
         this.alertView.setValue(this.alertness)
 
@@ -61,6 +60,6 @@ export default class Enemy extends Phaser.GameObjects.Container {
             this.setAlpha(0.5)
             EventBus.emit('site:saturated', this.alertness)
         } else
-            ReactSpawner.spawn(mismatch/maxType, this, this.scene.player, proj, this.scene)
+            ReactSpawner.spawn(matchup.mismatchMul, this, this.scene.player, proj, this.scene)
     }
 }
