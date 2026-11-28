@@ -43,9 +43,9 @@ export default class Enemy extends Phaser.GameObjects.Container {
         this.body.setCollideWorldBounds(true);
     }
 
-    hit(proj: Projectile) {
+    hit(proj: Projectile): boolean {
         if (!this.active)
-            return;
+            return false;
         const matchup = Matchup(this.affinity, proj.affinity, proj.damage)
         this.saturation += matchup.satDelta;   //0 to 0.2
         this.saturation = Phaser.Math.Clamp(Phaser.Math.RoundTo(this.saturation,-3), 0,1)
@@ -57,9 +57,13 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
         if (this.saturation >= 1) {
             this.setActive(false)
+            this.body.setEnable(false)
+
             this.setAlpha(0.5)
             EventBus.emit('site:saturated', this.alertness)
         } else
             ReactSpawner.spawn(matchup.mismatchMul, this, this.scene.player, proj, this.scene)
+
+        return true;
     }
 }

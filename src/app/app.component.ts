@@ -18,7 +18,7 @@ export class AppComponent implements OnDestroy
     public spritePosition = { x: 0, y: 0 };
     public canMoveSprite = false;
     public batchSize;
-    loadout = {maxBatch: 3}
+    loadout = {maxBatch: 4}
     phaserRef = viewChild.required(PhaserGame);
 
     constructor()

@@ -86,10 +86,10 @@ export class Game extends Scene {
             }
         });
         this.physics.add.overlap(this.enemies, this.groups.get(Projectile), (enemy:Enemy, proj:Projectile) => {
-            enemy.hit(proj);
+            if (enemy.hit(proj))
+                EventBus.emit('enemy:hit', [enemy.affinity, proj.affinity]);
             proj.disableBody(true, true);
-            EventBus.emit('enemy:hit', [enemy.affinity, proj.affinity]);
-        });
+        })
     }
     private addControls() {
         this.input.keyboard.on('keydown-Q',()=>this.player.updateBatch(this.player.batchSize-1));
